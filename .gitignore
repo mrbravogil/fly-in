@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+data_*/
+.envrc
+.mypy_cache/
+.env
+.atl/
