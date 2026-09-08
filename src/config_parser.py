@@ -40,6 +40,7 @@ class Config:
     end_hub: dict[str, dict[str, Any]]
     hubs: dict[str, dict[str, Any]]
     connections: dict[int, dict[str, Any]]
+    output_file: str
 
 
 class ConfigParser:
@@ -295,6 +296,12 @@ class ConfigParser:
             'max_link_capacity': [int(c3) if c3 else 0]
         }
 
+    # def _validate_start_end(self,
+    #                         start_hub: dict[str, dict[str, Any]],
+    #                         end_hub: dict[str, dict[str, Any]]) -> None:
+
+    # def _validate_output_path(self, output_file: str) -> None:
+
     def parse(self) -> Config:
         """Parse the configuration file and return a Config instance.
 
@@ -333,7 +340,8 @@ class ConfigParser:
             start_hub=start_hub,
             end_hub=end_hub,
             hubs=processed_hubs,
-            connections=processed_connections
+            connections=processed_connections,
+            output_file=''
         )
 
 
