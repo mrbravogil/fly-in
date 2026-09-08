@@ -39,7 +39,7 @@ class Config:
     start_hub: dict[str, dict[str, Any]]
     end_hub: dict[str, dict[str, Any]]
     hubs: dict[str, dict[str, Any]]
-    connections: tuple[tuple[str, str]]
+    connections: dict[int, dict[str, Any]]
 
 
 class ConfigParser:
@@ -103,7 +103,10 @@ class ConfigParser:
         or duplicate key.
         """
 
-        config = {}
+        config: dict[str, Any] = {}
+        repeat_keys = ['hub', 'connection']
+        config['hubs'] = []
+        config['connections'] = []
 
         for line in lines:
             if '#' in line:
@@ -125,11 +128,17 @@ class ConfigParser:
             if not value:
                 raise ValueError(
                     f"Empty value for key '{key}' in configuration file.")
-            if key in config:
+
+            if key == 'hub':
+                config['hubs'].append(value)
+            if key == 'connection':
+                config['connections'].append(value)
+
+            if key in config and key not in repeat_keys:
                 raise ValueError(
                     f"Duplicate key '{key}' in configuration file.")
-
-            config[key] = value
+            if key not in repeat_keys:
+                config[key] = value
 
         return config
 
@@ -163,7 +172,7 @@ class ConfigParser:
 
         return drones
 
-    def _parse_hubs(self, value: str) -> dict[str, dict[str, Any]]:
+    def _parse_hubs(self, value: str) -> dict[str, Any]:
         required_values = 'color'
 
         name, v = value.strip().split(' ', 1)
@@ -189,14 +198,13 @@ class ConfigParser:
             add_values)
 
         return {
-            name: {
-                'coordinates': coordinates,
-                'color': p_values['color'],
-                'zone': [p_values['zone']
-                         if p_values['zone'] else 'none'],
-                'max_drones': [int(p_values['max_drones'])
-                               if p_values['max_drones'] else 0]
-            }
+            'name': name,
+            'coordinates': coordinates,
+            'color': p_values['color'],
+            'zone': [p_values['zone']
+                     if p_values['zone'] else 'none'],
+            'max_drones': [int(p_values['max_drones'])
+                           if p_values['max_drones'] else 0]
         }
 
     def _validate_hub_coordinates(self, coord: list[str]) -> list[int]:
@@ -253,7 +261,7 @@ class ConfigParser:
 
         return processed_values
 
-    def _parse_connections(self, value: str) -> dict[str, Any]:
+    def _parse_connection(self, value: str) -> dict[str, Any]:
         if '[' in value and ']' not in value:
             raise ValueError(f'connections format error: connection: {value}'
                              'Try: connection: maze_a1-maze_a2 or'
@@ -286,3 +294,53 @@ class ConfigParser:
             'connection': connection,
             'max_link_capacity': [int(c3) if c3 else 0]
         }
+
+    def parse(self) -> Config:
+        """Parse the configuration file and return a Config instance.
+
+        Reads the file, validates required keys, parses each field,
+        and returns a fully validated Config object.
+
+        Returns the config instance with all parsed and validated values.
+
+        Raises a Error: If any validation fails.
+        """
+
+        lines = self._read_file()
+        raw_config = self._parse_lines(lines)
+        self._validate_required_keys(raw_config)
+
+        drones = self._parse_drones(raw_config['nb_drones'])
+        start_hub = self._parse_hubs(raw_config['start_hub'])
+        end_hub = self._parse_hubs(raw_config['end_hub'])
+
+        hubs = raw_config['hubs']
+        processed_hubs = {}
+        for hub in hubs:
+            h = self._parse_hubs(hub)
+            processed_hubs[h['name']] = h
+
+        connections = raw_config['connections']
+        processed_connections = {}
+        i = 1
+        for connection in connections:
+            c = self._parse_connection(connection)
+            processed_connections[i] = c
+            i += 1
+
+        return Config(
+            drones=drones,
+            start_hub=start_hub,
+            end_hub=end_hub,
+            hubs=processed_hubs,
+            connections=processed_connections
+        )
+
+
+def parse_config(file_path: str) -> Config:
+    """Convenience function to parse a configuration file.
+
+    Returns parsed and validated Config instance.
+    """
+    parser = ConfigParser(file_path)
+    return parser.parse()
