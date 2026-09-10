@@ -6,3 +6,4 @@ data_*/
 .mypy_cache/
 .env
 .atl/
+.vscode/
