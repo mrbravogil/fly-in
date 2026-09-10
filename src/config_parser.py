@@ -18,7 +18,7 @@ Example Graph:
 
 import os
 from typing import Any
-from models import Graph, Hub
+from models.models import Graph, Hub
 
 
 class ConfigParser:
