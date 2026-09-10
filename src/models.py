@@ -14,8 +14,12 @@ class Drone(BaseModel):
         if self.x == hub.x and self.y == hub.y:
             raise ValueError('drone cannot stay in the same spot.')
 
-        self.x = hub.x
-        self.y = hub.y
+        if not hub.max_drone_capacity():
+            self.x = hub.x
+            self.y = hub.y
+            hub.drones.append(self)
+        else:
+            raise ValueError('hub has reached max_drone_capacity')
 
     def has_finished(self, hub: 'Hub') -> bool:
         if hub.is_end:
@@ -46,18 +50,19 @@ class Hub(BaseModel):
     color: str = 'white'
     capacity: int = Field(ge=1, default=1)
     zone: str = 'normal'
-    drones: int = 0
+    drones: list[Drone] = []
     max_drones: int = Field(ge=0, default=0)
-    connections: dict[int, tuple['Hub', int]] = {}
+    connections: list['Hub'] = []
     weight: int = 0
     reserved: bool = False
     is_start: bool = False
     is_end: bool = False
+    occupied: bool = False
 
-    @model_validator(mode='after')
-    def drone_capacity(self) -> None:
-        if self.drones > self.max_drones:
-            raise ValueError(f'reached max_drones limit: {self.max_drones}')
+    def max_drone_capacity(self) -> bool:
+        if len(self.drones) >= self.max_drones:
+            return True
+        return False
 
     def define_hub_connections(self, graph: 'Graph') -> None:
         if len(self.connections) == 0:
@@ -83,7 +88,7 @@ class Graph(BaseModel):
     hubs: list[Hub]
     width: int = 0
     height: int = 0
-    connections: dict[int, dict[str, Any]]
+    connections: dict[str, dict[str, Any]]
     output_file: str
 
     @model_validator(mode='after')
@@ -97,15 +102,44 @@ class Graph(BaseModel):
         self.height = (max_y - min_y) + 1
 
     @model_validator(mode='after')
+    def get_connection_weights(self) -> None:
+        for v in self.connections.values():
+            if v['zone'] == 'normal':
+                v['weight'] = 1
+            if v['zone'] == 'priority':
+                v['weight'] = 1
+            if v['zone'] == 'restricted':
+                v['weight'] = 2
+            if v['zone'] == 'blocked':
+                v['weight'] = 0
+
+    @model_validator(mode='after')
     def validate_start_end(self) -> None:
         sx, sy = self.start_hub.x, self.start_hub.y
         ex, ey = self.end_hub.x, self.end_hub.y
 
         if sx == ex and sy == ey:
-            raise ValueError('Coordinates of start and end must be unique.')
+            raise ValueError('coordinates of start and end must be unique.')
 
     @model_validator(mode='after')
     def validate_output_path(self) -> None:
         parent_dir = os.path.dirname(os.path.abspath(self.output_file))
         if parent_dir and not os.path.isdir(parent_dir):
-            raise Exception(f"Output directory does not exist: '{parent_dir}'")
+            raise Exception(f"output directory does not exist: '{parent_dir}'")
+
+    @model_validator(mode='after')
+    def validate_connections(self) -> None:
+        hub_list: list[str] = []
+        for h in self.hubs:
+            hub_list.append(h.name)
+
+        for c in self.connections.values():
+            a, b = c['connection']
+            if a not in hub_list or b not in hub_list:
+                raise ValueError(f'connection error: {c["connection"]} is not '
+                                 'a registered hub')
+            for h in self.hubs:
+                if a == h.name:
+                    h.connections.append(h)
+                if b == h.name:
+                    h.connections.append(h)

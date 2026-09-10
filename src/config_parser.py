@@ -292,8 +292,10 @@ class ConfigParser:
         drones = self._parse_drones(raw_config['nb_drones'])
         start_hub = self._parse_hubs(raw_config['start_hub'])
         start_hub.is_start = True
+        start_hub.max_drones = drones
         end_hub = self._parse_hubs(raw_config['end_hub'])
-        start_hub.is_end = True
+        end_hub.is_end = True
+        end_hub.max_drones = drones
 
         hubs = raw_config['hubs']
         processed_hubs: list[Hub] = []
@@ -309,7 +311,7 @@ class ConfigParser:
         i = 1
         for connection in connections:
             c = self._parse_connection(connection)
-            processed_connections[i] = c
+            processed_connections[f'id{i}'] = c
             i += 1
 
         return Graph(
