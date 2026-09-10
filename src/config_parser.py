@@ -17,30 +17,8 @@ Example configuration file:
 """
 
 import os
-from dataclasses import dataclass
 from typing import Any
-
-
-@dataclass
-class Config:
-    """Holds parsed graph generation configuration values.
-
-    Attributes:
-
-    drones: Number of drones used in the simulation
-    start_hub: Coordinates and color of start hub
-    hubs: Coordinates of different hubs
-    end_hub: Coordinates and color of end hub
-    connections: Connections between hubs
-
-    """
-
-    drones: int
-    start_hub: dict[str, dict[str, Any]]
-    end_hub: dict[str, dict[str, Any]]
-    hubs: dict[str, dict[str, Any]]
-    connections: dict[int, dict[str, Any]]
-    output_file: str
+from models import Graph, Hub
 
 
 class ConfigParser:
@@ -173,7 +151,7 @@ class ConfigParser:
 
         return drones
 
-    def _parse_hubs(self, value: str) -> dict[str, Any]:
+    def _parse_hubs(self, value: str) -> Hub:
         required_values = 'color'
 
         name, v = value.strip().split(' ', 1)
@@ -198,15 +176,15 @@ class ConfigParser:
         p_values: dict[str, str] = self._validate_hub_add_values(
             add_values)
 
-        return {
-            'name': name,
-            'coordinates': coordinates,
-            'color': p_values['color'],
-            'zone': [p_values['zone']
-                     if p_values['zone'] else 'none'],
-            'max_drones': [int(p_values['max_drones'])
-                           if p_values['max_drones'] else 0]
-        }
+        return Hub(name=name,
+                   x=coordinates[0],
+                   y=coordinates[1],
+                   color=p_values['color'],
+                   zone=[p_values['zone']
+                         if p_values['zone'] else 'normal'],
+                   max_drones=[int(p_values['max_drones'])
+                               if p_values['max_drones'] else 0]
+                   )
 
     def _validate_hub_coordinates(self, coord: list[str]) -> list[int]:
         new_cords: list[int] = []
@@ -296,13 +274,7 @@ class ConfigParser:
             'max_link_capacity': [int(c3) if c3 else 0]
         }
 
-    # def _validate_start_end(self,
-    #                         start_hub: dict[str, dict[str, Any]],
-    #                         end_hub: dict[str, dict[str, Any]]) -> None:
-
-    # def _validate_output_path(self, output_file: str) -> None:
-
-    def parse(self) -> Config:
+    def parse(self) -> Graph:
         """Parse the configuration file and return a Config instance.
 
         Reads the file, validates required keys, parses each field,
@@ -319,13 +291,18 @@ class ConfigParser:
 
         drones = self._parse_drones(raw_config['nb_drones'])
         start_hub = self._parse_hubs(raw_config['start_hub'])
+        start_hub.is_start = True
         end_hub = self._parse_hubs(raw_config['end_hub'])
+        start_hub.is_end = True
 
         hubs = raw_config['hubs']
-        processed_hubs = {}
+        processed_hubs: list[Hub] = []
+        processed_hubs.append(start_hub)
         for hub in hubs:
-            h = self._parse_hubs(hub)
-            processed_hubs[h['name']] = h
+            h: Hub = self._parse_hubs(hub)
+            processed_hubs.append(h)
+
+        processed_hubs.append(end_hub)
 
         connections = raw_config['connections']
         processed_connections = {}
@@ -335,7 +312,7 @@ class ConfigParser:
             processed_connections[i] = c
             i += 1
 
-        return Config(
+        return Graph(
             drones=drones,
             start_hub=start_hub,
             end_hub=end_hub,
@@ -345,7 +322,7 @@ class ConfigParser:
         )
 
 
-def parse_config(file_path: str) -> Config:
+def parse_config(file_path: str) -> Graph:
     """Convenience function to parse a configuration file.
 
     Returns parsed and validated Config instance.

@@ -1,19 +1,21 @@
 [project]
 name = "fly-in"
 version = "0.1.0"
-description = "Drone routing system that navigates multiple drones
-through connected zones while minimizing simulation turns and handling movement"
+description = "Drone routing system that navigates multiple drones through connected zones while minimizing simulation turns and handling movement"
 readme = "README.md"
 authors = [
     { name = "mabravo-"}
 ]
 
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pydantic>=2.13.3"
+]
 
 [tool.uv]
 package = false
 
+[tool.mypy]
 python_version = "3.12"
 warn_return_any = true
 warn_unused_ignores = true
