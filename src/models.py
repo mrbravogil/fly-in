@@ -10,6 +10,20 @@ class Drone(BaseModel):
     x: int
     y: int
 
+    def move(self, hub: 'Hub') -> None:
+        if self.x == hub.x and self.y == hub.y:
+            raise ValueError('drone cannot stay in the same spot.')
+
+        self.x = hub.x
+        self.y = hub.y
+
+    def has_finished(self, hub: 'Hub') -> bool:
+        if hub.is_end:
+            if self.x == hub.x and self.y == hub.y:
+                return True
+
+        return False
+
 
 class Hub(BaseModel):
     """Represents a zone or hub in the network.
@@ -32,12 +46,22 @@ class Hub(BaseModel):
     color: str = 'white'
     capacity: int = Field(ge=1, default=1)
     zone: str = 'normal'
+    drones: int = 0
     max_drones: int = Field(ge=0, default=0)
     connections: dict[int, tuple['Hub', int]] = {}
     weight: int = 0
     reserved: bool = False
     is_start: bool = False
     is_end: bool = False
+
+    @model_validator(mode='after')
+    def drone_capacity(self) -> None:
+        if self.drones > self.max_drones:
+            raise ValueError(f'reached max_drones limit: {self.max_drones}')
+
+    def define_hub_connections(self, graph: 'Graph') -> None:
+        if len(self.connections) == 0:
+            raise ValueError('hub error, no connections found.')
 
 
 class Graph(BaseModel):

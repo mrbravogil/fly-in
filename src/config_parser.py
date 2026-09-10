@@ -1,9 +1,9 @@
 """Configuration parser for the Fly-in project.
 
 This module provides the Parser class to read and validate
-maze generation configuration files in KEY:VALUE format.
+graph configuration files in KEY:VALUE format.
 
-Example configuration file:
+Example Graph:
 
     nb_drones: 2
     start_hub: start 0 0 [color=green]
