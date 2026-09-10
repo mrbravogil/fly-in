@@ -6,28 +6,24 @@ class Drone(BaseModel):
     """Represents a single drone entity in the simulation."""
 
     id: str = f'D{id}'
-    x: int
-    y: int
-    # position: 'Hub'
+    current_hub: 'Hub'
     path: list[tuple[str, str]] = []
+    path_index: int
     status: str = 'normal'
-    # zone: self.position
 
     def move(self, hub: 'Hub') -> None:
-        if self.x == hub.x and self.y == hub.y:
+        if self.current_hub.x == hub.x and self.current_hub.y == hub.y:
             raise ValueError('drone cannot stay in the same spot.')
 
         if not hub.max_drone_capacity():
-            self.x = hub.x
-            self.y = hub.y
+            self.current_hub = hub
             hub.drones.append(self)
         else:
             raise ValueError('hub has reached max_drone_capacity')
 
-    def has_finished(self, hub: 'Hub') -> bool:
-        if hub.is_end:
-            if self.x == hub.x and self.y == hub.y:
-                return True
+    def has_finished(self) -> bool:
+        if self.current_hub.is_end:
+            return True
 
         return False
 
@@ -51,10 +47,9 @@ class Hub(BaseModel):
     x: int
     y: int
     color: str = 'white'
-    capacity: int = Field(ge=1, default=1)
     zone: str = 'normal'
     drones: list[Drone] = []
-    max_drones: int = Field(ge=0, default=0)
+    max_drones: int = Field(ge=1, default=1)
     connections: list['Hub'] = []
     weight: int = 0
     reserved: bool = False
@@ -70,3 +65,11 @@ class Hub(BaseModel):
     def define_hub_connections(self, graph: 'Graph') -> None:
         if len(self.connections) == 0:
             raise ValueError('hub error, no connections found.')
+
+
+class Connection(BaseModel):
+
+    id: str = f'C{id}'
+    hub_a: Hub
+    hub_b: Hub
+    max_link_capacity: int = 0

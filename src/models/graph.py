@@ -1,8 +1,7 @@
 from pydantic import BaseModel, Field, model_validator
-from typing import Any
 import os
 
-from .models import Hub
+from .models import Hub, Connection
 
 
 class Graph(BaseModel):
@@ -24,7 +23,7 @@ class Graph(BaseModel):
     hubs: list[Hub]
     width: int = 0
     height: int = 0
-    connections: dict[str, dict[str, Any]]
+    connections: list[Connection]
     output_file: str
 
     @model_validator(mode='after')
@@ -38,16 +37,16 @@ class Graph(BaseModel):
         self.height = (max_y - min_y) + 1
 
     @model_validator(mode='after')
-    def get_connection_weights(self) -> None:
-        for v in self.connections.values():
-            if v['zone'] == 'normal':
-                v['weight'] = 1
-            if v['zone'] == 'priority':
-                v['weight'] = 1
-            if v['zone'] == 'restricted':
-                v['weight'] = 2
-            if v['zone'] == 'blocked':
-                v['weight'] = 0
+    def get_hub_weights(self) -> None:
+        for v in self.hubs:
+            if v.zone == 'normal':
+                v.weight = 1
+            if v.zone == 'priority':
+                v.weight = 1
+            if v.zone == 'restricted':
+                v.weight = 2
+            if v.zone == 'blocked':
+                v.weight = 0
 
     @model_validator(mode='after')
     def validate_start_end(self) -> None:
@@ -69,13 +68,24 @@ class Graph(BaseModel):
         for h in self.hubs:
             hub_list.append(h.name)
 
-        for c in self.connections.values():
-            a, b = c['connection']
+        for c in self.connections:
+            a, b = c.hub_a, c.hub_b
             if a not in hub_list or b not in hub_list:
                 raise ValueError(f'connection error: {c["connection"]} is not '
                                  'a registered hub')
-            for h in self.hubs:
-                if a == h.name:
-                    h.connections.append(h)
-                if b == h.name:
-                    h.connections.append(h)
+
+            a_hub: Hub = self._find_hub(a)
+            b_hub: Hub = self._find_hub(b)
+            a_hub.connections.append(b_hub)
+            b_hub.connections.append(a_hub)
+
+            if a_hub in a_hub.connections or b_hub in b_hub.connections:
+                raise ValueError(
+                    'connection error: a hub cannot connect to itself.')
+
+    def _find_hub(self, name: str) -> Hub:
+        for hub in self.hubs:
+            if name == hub.name:
+                return hub
+
+        raise ValueError(f'hub error, no hub registered with name: {name}')

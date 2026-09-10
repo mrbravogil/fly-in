@@ -18,7 +18,7 @@ Example Graph:
 
 import os
 from typing import Any
-from models.models import Graph, Hub
+from models.models import Graph, Hub, Connection
 
 
 class ConfigParser:
@@ -240,7 +240,7 @@ class ConfigParser:
 
         return processed_values
 
-    def _parse_connection(self, value: str) -> dict[str, Any]:
+    def _parse_connection(self, value: str) -> Connection:
         if '[' in value and ']' not in value:
             raise ValueError(f'connections format error: connection: {value}'
                              'Try: connection: maze_a1-maze_a2 or'
@@ -267,12 +267,8 @@ class ConfigParser:
                 print('max_link_capacity must be a valid '
                       'positive number.')
 
-        connection: list[str] = [c1, c2]
-
-        return {
-            'connection': connection,
-            'max_link_capacity': [int(c3) if c3 else 0]
-        }
+        return Connection(hub_a=c1, hub_b=c2,
+                          max_link_capacity=[int(c3) if c3 else 0])
 
     def parse(self) -> Graph:
         """Parse the configuration file and return a Config instance.
@@ -307,11 +303,12 @@ class ConfigParser:
         processed_hubs.append(end_hub)
 
         connections = raw_config['connections']
-        processed_connections = {}
+        processed_connections = []
         i = 1
         for connection in connections:
             c = self._parse_connection(connection)
-            processed_connections[f'id{i}'] = c
+            c.id = str(i)
+            processed_connections.append(c)
             i += 1
 
         return Graph(

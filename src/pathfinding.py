@@ -8,35 +8,39 @@ class PathFinder():
                                                             dict[str, Any]]:
         size = len(graph.hubs)
         distances: dict[str, float | int] = self.build_hub_map(graph,
-                                                               [float('inf')])
-        distances[start] = 0
+                                                               float('inf'))
+        distances[start.name] = 0
         prev: dict[str, str | None] = self.build_hub_map(graph,
                                                          None)
-        visited = [False] * size
+        visited = self.build_hub_map(graph,
+                                     False)
 
         for _ in range(size):
             min_distance = float('inf')
             u: Hub
             for i in graph.hubs:
-                if not visited[i] and distances[i] < min_distance:
-                    min_distance = distances[i]
+                if not visited[i.name] and distances[i.name] < min_distance:
+                    min_distance = distances[i.name]
                     u = i
 
-            if u.is_end:
+            if u.is_end or u is None:
                 break
 
-            visited[u] = True
+            visited[u.name] = True
 
             for v in u.connections:
-                if visited[v]:
+                if visited[v.name]:
                     continue
 
-                w: int = self.get_weights(u, v, graph)
-                alt: float = distances[u] + w
+                w: int = v.weight
+                if w == 0:
+                    continue
 
-                if alt < distances[v]:
-                    distances[v] = alt
-                    prev[v] = u
+                alt: float = distances[u.name] + w
+
+                if alt < distances[v.name]:
+                    distances[v.name] = alt
+                    prev[v.name] = u
 
         return distances, prev
 
@@ -46,12 +50,3 @@ class PathFinder():
             map[h.name] = type
 
         return map
-
-    def get_weights(self, n1: Hub, n2: Hub, graph: Graph) -> int:
-        weight = 0
-        connections = graph.connections
-        for v in connections.values():
-            if n1 in v['connection'] and n2 in v['connection']:
-                weight = v['weight']
-
-        return weight
