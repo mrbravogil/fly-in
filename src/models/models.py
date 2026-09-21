@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field, model_validator
-from .graph import Graph
 
 
 class Drone(BaseModel):
@@ -56,6 +55,8 @@ class Hub(BaseModel):
     is_start: bool = False
     is_end: bool = False
     occupied: bool = False
+
+    from .graph import Graph
 
     def max_drone_capacity(self) -> bool:
         if len(self.drones) >= self.max_drones:

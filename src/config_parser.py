@@ -18,7 +18,7 @@ Example Graph:
 
 import os
 from typing import Any
-from models.models import Graph, Hub, Connection
+from .models.models import Graph, Connection
 
 
 class ConfigParser:
@@ -30,6 +30,8 @@ class ConfigParser:
     """
     REQUIRED_KEYS = {"nb_drones", "start_hub", "hub", "end_hub",
                      "connection"}
+
+    from .models.models import Hub
 
     def __init__(self, file_path: str) -> None:
         """Initialize the parser with a configuration file path.
@@ -326,5 +328,6 @@ def parse_config(file_path: str) -> Graph:
 
     Returns parsed and validated Config instance.
     """
+    
     parser = ConfigParser(file_path)
     return parser.parse()

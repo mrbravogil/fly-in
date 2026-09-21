@@ -1,7 +1,5 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, model_validator
 import os
-
-from .models import Hub, Connection
 
 
 class Graph(BaseModel):
@@ -16,6 +14,7 @@ class Graph(BaseModel):
     connections: Connections between hubs
 
     """
+    from .models import Hub, Connection
 
     drones: int
     start_hub: Hub
@@ -62,26 +61,26 @@ class Graph(BaseModel):
         if parent_dir and not os.path.isdir(parent_dir):
             raise Exception(f"output directory does not exist: '{parent_dir}'")
 
-    @model_validator(mode='after')
-    def validate_connections(self) -> None:
-        hub_list: list[str] = []
-        for h in self.hubs:
-            hub_list.append(h.name)
+    # @model_validator(mode='after')
+    # def validate_connections(self) -> None:
+    #     hub_list: list[str] = []
+    #     for h in self.hubs:
+    #         hub_list.append(h.name)
 
-        for c in self.connections:
-            a, b = c.hub_a, c.hub_b
-            if a not in hub_list or b not in hub_list:
-                raise ValueError(f'connection error: {c["connection"]} is not '
-                                 'a registered hub')
+    #     for c in self.connections:
+    #         a, b = c.hub_a, c.hub_b
+    #         if a not in hub_list or b not in hub_list:
+    #             raise ValueError(f'connection error: {c["connection"]} is not '
+    #                              'a registered hub')
 
-            a_hub: Hub = self._find_hub(a)
-            b_hub: Hub = self._find_hub(b)
-            a_hub.connections.append(b_hub)
-            b_hub.connections.append(a_hub)
+    #         a_hub: Hub = self._find_hub(a)
+    #         b_hub: Hub = self._find_hub(b)
+    #         a_hub.connections.append(b_hub)
+    #         b_hub.connections.append(a_hub)
 
-            if a_hub in a_hub.connections or b_hub in b_hub.connections:
-                raise ValueError(
-                    'connection error: a hub cannot connect to itself.')
+    #         if a_hub in a_hub.connections or b_hub in b_hub.connections:
+    #             raise ValueError(
+    #                 'connection error: a hub cannot connect to itself.')
 
     def _find_hub(self, name: str) -> Hub:
         for hub in self.hubs:

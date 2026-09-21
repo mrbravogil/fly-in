@@ -6,6 +6,7 @@ class PathFinder():
 
     def build_path(self, start: Hub, graph: Graph) -> tuple[dict[str, Any],
                                                             dict[str, Any]]:
+        """Dijkstra's algorithm """
         size = len(graph.hubs)
         distances: dict[str, float | int] = self.build_hub_map(graph,
                                                                float('inf'))
