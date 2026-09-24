@@ -1,13 +1,20 @@
-from pydantic import BaseModel, Field, model_validator
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from pydantic import BaseModel, Field
+
+if TYPE_CHECKING:
+    from .graph import Graph
 
 
 class Drone(BaseModel):
     """Represents a single drone entity in the simulation."""
 
-    id: str = f'D{id}'
+    id: str = 'D0'
     current_hub: 'Hub'
-    path: list[tuple[str, str]] = []
-    path_index: int
+    path: list[tuple[str, str]] = Field(default_factory=list)
+    path_index: int = 0
     status: str = 'normal'
 
     def move(self, hub: 'Hub') -> None:
@@ -47,16 +54,14 @@ class Hub(BaseModel):
     y: int
     color: str = 'white'
     zone: str = 'normal'
-    drones: list[Drone] = []
-    max_drones: int = Field(ge=1, default=1)
-    connections: list['Hub'] = []
+    drones: list[Drone] = Field(default_factory=list)
+    max_drones: int = Field(ge=1, default=9999)
+    connections: list['Hub'] = Field(default_factory=list)
     weight: int = 0
     reserved: bool = False
     is_start: bool = False
     is_end: bool = False
     occupied: bool = False
-
-    from .graph import Graph
 
     def max_drone_capacity(self) -> bool:
         if len(self.drones) >= self.max_drones:
@@ -70,7 +75,15 @@ class Hub(BaseModel):
 
 class Connection(BaseModel):
 
-    id: str = f'C{id}'
-    hub_a: Hub
-    hub_b: Hub
+    id: str = 'C0'
+    hub_a: str
+    hub_b: str
     max_link_capacity: int = 0
+
+
+'''model_rebuild() tells Pydantic to resolve forward references
+in type annotations after all classes are defined.
+
+Replaces type name written as text with the actual class'''
+Drone.model_rebuild()
+Hub.model_rebuild()

@@ -18,7 +18,9 @@ Example Graph:
 
 import os
 from typing import Any
-from .models.models import Graph, Connection
+
+from .models.graph import Graph
+from .models.models import Connection, Hub
 
 
 class ConfigParser:
@@ -28,10 +30,7 @@ class ConfigParser:
     Reads a plain text file containing KEY:VALUE pairs, validates
     required fields, and returns a Config dataclass instance.
     """
-    REQUIRED_KEYS = {"nb_drones", "start_hub", "hub", "end_hub",
-                     "connection"}
-
-    from .models.models import Hub
+    REQUIRED_KEYS = {"nb_drones", "start_hub", "end_hub"}
 
     def __init__(self, file_path: str) -> None:
         """Initialize the parser with a configuration file path.
@@ -134,6 +133,14 @@ class ConfigParser:
             raise ValueError(
                 f"Missing required configuration keys: {missing_list}")
 
+        if not config.get('hubs'):
+            raise ValueError("Missing required hub entries in "
+                             "configuration file.")
+
+        if not config.get('connections'):
+            raise ValueError(
+                "Missing required connection entries in configuration file.")
+
     def _parse_drones(self, value: str) -> int:
         """Parse and validate the nb_drones value.
 
@@ -156,9 +163,13 @@ class ConfigParser:
     def _parse_hubs(self, value: str) -> Hub:
         required_values = 'color'
 
-        name, v = value.strip().split(' ', 1)
-        if not name.isalpha():
-            raise ValueError('hub must have a name')
+        parts = value.strip().split(maxsplit=1)
+        if len(parts) != 2:
+            raise ValueError('hub must have a name and coordinates')
+
+        name, v = parts
+        if not name.replace('_', '').isalnum():
+            raise ValueError('hub must have a valid name')
 
         if 'color=' not in v:
             raise ValueError(f'hub is missing value: {required_values}')
@@ -169,7 +180,7 @@ class ConfigParser:
 
         c, e_v = v.split('[', 1)
         coordinates: list[int] = self._validate_hub_coordinates(
-            list(c.split(' ')))
+            [coord for coord in c.split() if coord])
 
         add_values: list[str] = e_v.strip(']').split()
         if not add_values:
@@ -178,36 +189,37 @@ class ConfigParser:
         p_values: dict[str, str] = self._validate_hub_add_values(
             add_values)
 
-        return Hub(name=name,
-                   x=coordinates[0],
-                   y=coordinates[1],
-                   color=p_values['color'],
-                   zone=[p_values['zone']
-                         if p_values['zone'] else 'normal'],
-                   max_drones=[int(p_values['max_drones'])
-                               if p_values['max_drones'] else 0]
-                   )
+        return Hub(
+            name=name,
+            x=coordinates[0],
+            y=coordinates[1],
+            color=p_values['color'],
+            zone=p_values.get('zone', 'normal'),
+            max_drones=(int(p_values['max_drones'])
+                        if p_values.get('max_drones') else 1),
+        )
 
     def _validate_hub_coordinates(self, coord: list[str]) -> list[int]:
         new_cords: list[int] = []
         for c in coord:
             try:
                 coordinate = int(c)
-                if coordinate < 0:
-                    raise ValueError('all coordinates must be positive numbers'
-                                     f'. Error: {c}')
             except (Exception, ValueError) as e:
-                print(e)
+                raise ValueError(f'Invalid coordinate: {c}') from e
             new_cords.append(coordinate)
+
+        if len(new_cords) < 2:
+            raise ValueError(f'Hub coordinates are incomplete: {coord}')
 
         return new_cords
 
     def _validate_hub_add_values(self,
                                  add_values: list[str]) -> dict[str, str]:
-        processed_values = {}
+        processed_values: dict[str, str] = {}
         valid_keys = ['color', 'zone', 'max_drones']
         valid_colors = ['red', 'green', 'blue', 'orange', 'yellow',
-                        'black', 'white', 'maroon', 'darkred', 'cyan']
+                        'black', 'white', 'maroon', 'darkred', 'cyan',
+                        'gold', 'purple']
         for value in add_values:
             k, v = value.split('=', 1)
             k = k.strip()
@@ -225,18 +237,19 @@ class ConfigParser:
                 if not v.isalpha():
                     raise ValueError('you must provide a valid zone name: '
                                      'priority, restricted')
-                if v != 'restricted' or v != 'priority':
+                if v not in {'restricted', 'priority'}:
                     raise ValueError('you must provide a valid zone name: '
                                      'priority, restricted')
 
             if k == 'max_drones':
                 try:
-                    max = int(v)
-                    if max <= 0:
+                    max_value = int(v)
+                    if max_value <= 0:
                         raise ValueError('max_drones must be a number'
                                          ' higher than 0.')
                 except (ValueError, Exception) as e:
-                    print(e)
+                    raise ValueError('max_drones must be a valid positive '
+                                     'number.') from e
 
             processed_values[k] = v
 
@@ -248,29 +261,28 @@ class ConfigParser:
                              'Try: connection: maze_a1-maze_a2 or'
                              ' connection: start-maze_a1'
                              ' [max_link_capacity=2]')
-        c1, c2 = value.strip().split('-')
-        c3 = ''
-        if '[' in c2:
-            c2, c3 = c2.strip().strip(']').split('[', 1)
-            if '[' in c3 or ']' in c3:
-                raise ValueError('connections format error: connection: '
-                                 f'{value}'
-                                 'Try: connection: maze_a1-maze_a2 or'
-                                 ' connection: start-maze_a1'
-                                 ' [max_link_capacity=2]')
-            k, v = c3.strip().split('=')
+
+        if '[' in value:
+            raw = value.strip()
+            c1_c2, c3 = raw.split('[', 1)
+            c1, c2 = c1_c2.strip().split('-', 1)
+            c3 = c3.strip().rstrip(']')
+            k, v = c3.strip().split('=', 1)
             if k != 'max_link_capacity':
                 raise ValueError(f'cannot recognise this key: {k}')
             try:
-                max = int(v)
-                if max < 0:
-                    raise ValueError(' ')
-            except (Exception, ValueError):
-                print('max_link_capacity must be a valid '
-                      'positive number.')
+                max_capacity = int(v)
+                if max_capacity < 0:
+                    raise ValueError('max_link_capacity must '
+                                     'be a positive number.')
+            except (Exception, ValueError) as e:
+                raise ValueError('max_link_capacity must be '
+                                 'a valid positive number.') from e
+            return Connection(hub_a=c1, hub_b=c2,
+                              max_link_capacity=max_capacity)
 
-        return Connection(hub_a=c1, hub_b=c2,
-                          max_link_capacity=[int(c3) if c3 else 0])
+        c1, c2 = value.strip().split('-')
+        return Connection(hub_a=c1, hub_b=c2, max_link_capacity=0)
 
     def parse(self) -> Graph:
         """Parse the configuration file and return a Config instance.
@@ -328,6 +340,6 @@ def parse_config(file_path: str) -> Graph:
 
     Returns parsed and validated Config instance.
     """
-    
+
     parser = ConfigParser(file_path)
     return parser.parse()
