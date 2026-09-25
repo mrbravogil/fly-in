@@ -190,7 +190,7 @@ class ConfigParser:
             colour=p_values['color'],
             zone=p_values.get('zone', 'normal'),
             max_drones=(int(p_values['max_drones'])
-                        if p_values.get('max_drones') else 9999),
+                        if p_values.get('max_drones') else 1),
         )
 
     def _validate_hub_coordinates(self, coord: list[str]) -> list[int]:
