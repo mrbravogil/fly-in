@@ -60,7 +60,7 @@ class PathFinder():
 
                 w: int = v.weight
                 # Ignore blocked/non-usable connections.
-                if w == 0:
+                if w == 0 or v.max_drone_capacity():
                     continue
 
                 # Candidate distance to neighbor through the current hub.

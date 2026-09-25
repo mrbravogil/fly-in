@@ -1,6 +1,6 @@
 run:
 	uv run python -m src \
-		--map maps/easy/02_simple_fork.txt
+		--map maps/medium/01_dead_end_trap.txt
 
 install:
 	uv sync --no-install-project

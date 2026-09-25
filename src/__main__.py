@@ -17,21 +17,21 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def write_map(map: str) -> None:
-    with open(map, "r", encoding="utf-8") as f:
-        map_print: list[str] = f.readlines()
-
-    for line in map_print:
-        if line.startswith('#') is False and line[0] != '\n':
-            print(line)
-
-
 if __name__ == '__main__':
 
     print('\n\x1b[40mWELCOME TO FLY-IN ✈️ ✈️ ✈️ \x1b[0m\n')
     args = parse_args()
     try:
+
         graph: Graph = parse_config(args.map)
+        print(f'DRONES: {graph.n_drones}')
+        start = graph.start_hub
+        print(f'START HUB: {start.name} {start.x}, {start.y}')
+        end = graph.end_hub
+        print(f'END HUB: {end.name} {end.x}, {end.y}')
+        print(f'HUBS: {len(graph.hubs)}')
+        print(f'CONNECTIONS: {len(graph.connections)}\n')
+
         fly_in = Fly_in(graph)
         fly_in.run()
 

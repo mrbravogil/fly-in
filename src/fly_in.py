@@ -2,13 +2,20 @@ from .pathfinding import PathFinder
 from .models.graph import Graph
 
 COLOURS: dict[str, str] = {
-    'red': '\x1b[91m',
-    'green': '\x1b[92m',
-    'yellow': '\x1b[93m',
-    'blue': '\x1b[94m',
-    'purple': '\x1b[95m',
+    'red': '\x1b[38;5;196m',
+    'green': '\x1b[38;5;40m',
+    'yellow': '\x1b[38;5;190m',
+    'blue': '\x1b[38;5;39m',
+    'purple': '\x1b[38;5;57m',
     'cyan': '\x1b[96m',
-    'white': '\x1b[97m'
+    'orange': '\x1b[38;5;208m',
+    'brown': '\x1b[38;5;95m',
+    'maroon': '\x1b[38;5;88m',
+    'darkred': '\x1b[38;5;52m',
+    'crimson': '\x1b[38;5;124m',
+    'gold': '\x1b[38;5;178m',
+    'white': '\x1b[97m',
+    'black': '\n\x1b[40m',
 }
 
 
@@ -34,27 +41,39 @@ class Fly_in():
 
         return True
 
-    def run(self) -> None:
-        turns: int = 0
-        x, y = 0, 1
-        while self.all_drones_finished() is False:
-            turn_print: str = ''
-            for drone in self.graph.drones:
-                if drone.current_hub:
+    def _record_move(self) -> str:
+        turn_print: str = ''
+        for drone in self.graph.drones:
+            if drone.current_hub:
+                next_hub = drone.next_hub()
+                if next_hub:
                     colour: str = ''
-                    if drone.path[y].name == 'goal':
+                    if next_hub.name == 'goal':
                         colour = 'red'
                     else:
                         colour = drone.current_hub.colour
                     code: str = COLOURS[colour]
 
-                    turn_print += (f'{code}[{drone.id}: {drone.path[x].name} '
-                                   f'- {drone.path[y].name}] \x1b[0m')
+                    if (
+                        next_hub.max_drone_capacity() is False
+                        and drone.has_finished() is False
+                    ):
+                        turn_print += (f'{code}[{drone.id}: '
+                                       f'{drone.current_hub.name} '
+                                       f'- {next_hub.name}] \x1b[0m')
 
-                    drone.move_next_hub(drone.path[y])
-                    turns += 1
+                        drone.move_next_hub(next_hub)
+                    else:
+                        continue
+
+        return turn_print
+
+    def run(self) -> None:
+        turns: int = 0
+
+        while self.all_drones_finished() is False:
+            turn_print = self._record_move()
             print(turn_print)
-            turn_print = ''
-            x += 1
-            y += 1
+            turns += 1
+
         print(f'\n\x1b[40mTURNS: {turns}\x1b[0m\n')

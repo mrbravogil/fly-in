@@ -18,12 +18,24 @@ class Drone(BaseModel):
     path_index: int = 0
     status: str = 'normal'
 
+    def next_hub(self) -> 'Hub' | None:
+        i: int = 0
+        for hub in self.path:
+            if self.current_hub and hub.name == self.current_hub.name:
+                if self.path[i].name == 'goal':
+                    self.current_hub
+                else:
+                    return self.path[i + 1]
+            i += 1
+
+        return self.current_hub
+
     def move_next_hub(self, hub: 'Hub') -> None:
-        if hub.max_drone_capacity() is False:
+        if hub.max_drone_capacity() is False and self.current_hub:
+            if len(self.current_hub.drones):
+                self.current_hub.drones.pop(0)
             self.current_hub = hub
             hub.drones.append(self)
-        else:
-            raise ValueError('hub has reached max_drone_capacity')
 
     def has_finished(self) -> bool:
         if self.current_hub and self.current_hub.is_end:
