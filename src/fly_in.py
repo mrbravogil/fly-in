@@ -47,22 +47,21 @@ class Fly_in():
             if drone.current_hub:
                 next_hub = drone.next_hub()
                 if next_hub:
+                    connection = (
+                        self.graph.find_connection(drone.current_hub.name,
+                                                   next_hub.name))
                     colour: str = ''
                     if next_hub.name == 'goal':
                         colour = 'red'
                     else:
                         colour = drone.current_hub.colour
                     code: str = COLOURS[colour]
-
-                    if (
-                        next_hub.max_drone_capacity() is False
-                        and drone.has_finished() is False
-                    ):
-                        turn_print += (f'{code}[{drone.id}: '
-                                       f'{drone.current_hub.name} '
-                                       f'- {next_hub.name}] \x1b[0m')
-
-                        drone.move_next_hub(next_hub)
+                    if connection is not None:
+                        if drone.can_move(connection) is True:
+                            turn_print += (f'{code}[{drone.id}: '
+                                           f'{drone.current_hub.name} '
+                                           f'- {next_hub.name}] \x1b[0m')
+                            drone.move_next_hub(next_hub)
                     else:
                         continue
 

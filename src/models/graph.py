@@ -108,3 +108,9 @@ class Graph(BaseModel):
                 return hub
 
         raise ValueError(f'hub error, no hub registered with name: {name}')
+
+    def find_connection(self, hub_a: str, hub_b: str) -> Connection | None:
+        for connection in self.connections:
+            if connection.hub_a == hub_a and connection.hub_b == hub_b:
+                return connection
+        return None

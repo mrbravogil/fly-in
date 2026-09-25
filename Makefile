@@ -1,6 +1,6 @@
 run:
 	uv run python -m src \
-		--map maps/easy/02_simple_fork.txt
+		--map maps/easy/03_basic_capacity.txt
 
 install:
 	uv sync --no-install-project

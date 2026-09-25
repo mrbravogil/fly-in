@@ -18,6 +18,20 @@ class Drone(BaseModel):
     path_index: int = 0
     status: str = 'normal'
 
+    def can_move(self, connection: 'Connection') -> bool:
+        next_hub = self.next_hub()
+        if next_hub is None:
+            return False
+
+        elif (
+            next_hub is not None
+            and next_hub.max_drone_capacity() is False
+            and self.has_finished() is False
+        ):
+            return True
+
+        return False
+
     def next_hub(self) -> 'Hub' | None:
         i: int = 0
         for hub in self.path:
@@ -41,13 +55,6 @@ class Drone(BaseModel):
         if self.current_hub and self.current_hub.is_end:
             return True
         return False
-
-    # def enter_connection(self, connection: 'Connection') -> None:
-    #     self.current_connection = connection
-
-    # def leave_connection(self, connection: Connection) -> None:
-    #     if self.current_connection and self.current_connection == connection:
-    #         self.current_connection = None
 
 
 class Hub(BaseModel):
@@ -103,11 +110,9 @@ class Connection(BaseModel):
         return True
 
     def enter(self, drone: Drone) -> None:
-        if self.has_capacity is False:
-            raise ValueError('connection has reached max capacity')
-
-        self.current_drones.append(drone)
-        drone.current_connection = self
+        if self.has_capacity is True:
+            self.current_drones.append(drone)
+            drone.current_connection = self
 
     def leave(self, drone: Drone) -> None:
         self.current_drones.remove(drone)
