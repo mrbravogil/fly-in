@@ -196,7 +196,7 @@ class ConfigParser:
             color=p_values['color'],
             zone=p_values.get('zone', 'normal'),
             max_drones=(int(p_values['max_drones'])
-                        if p_values.get('max_drones') else 1),
+                        if p_values.get('max_drones') else 9999),
         )
 
     def _validate_hub_coordinates(self, coord: list[str]) -> list[int]:
@@ -326,7 +326,8 @@ class ConfigParser:
             i += 1
 
         return Graph(
-            drones=drones,
+            drones=[],
+            n_drones=drones,
             start_hub=start_hub,
             end_hub=end_hub,
             hubs=processed_hubs,

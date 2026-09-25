@@ -4,7 +4,7 @@ import os
 
 from pydantic import BaseModel, model_validator
 
-from .models import Connection, Hub
+from .models import Connection, Hub, Drone
 
 
 class Graph(BaseModel):
@@ -19,7 +19,8 @@ class Graph(BaseModel):
     connections: Connections between hubs
 
     """
-    drones: int
+    drones: list[Drone]
+    n_drones: int
     start_hub: Hub
     end_hub: Hub
     hubs: list[Hub]
@@ -89,6 +90,17 @@ class Graph(BaseModel):
                 raise ValueError(
                     'connection error: a hub cannot connect to itself.')
         return self
+
+    def create_drones(self) -> None:
+        drones: list[Drone] = []
+        i = 1
+        while i <= self.n_drones:
+            d_name = f'D{str(i)}'
+            drone = Drone(id=d_name, current_hub=self.start_hub)
+            drones.append(drone)
+            i += 1
+
+        self.drones = drones
 
     def _find_hub(self, name: str) -> Hub:
         for hub in self.hubs:

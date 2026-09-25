@@ -1,6 +1,7 @@
 import argparse
-from . import config_parser
-from .pathfinding import PathFinder
+from .fly_in import Fly_in
+from .config_parser import parse_config
+from .models.graph import Graph
 
 
 def parse_args() -> argparse.Namespace:
@@ -27,15 +28,25 @@ def main() -> None:
 
     print('\nWELCOME TO FLY-IN ✈️ ✈️ ✈️\n')
     args = parse_args()
-    graph = config_parser.parse_config(args.map)
-    write_map(args.map)
-    # print(graph, '\n')
-    path_finder = PathFinder()
-    path, prev = path_finder.build_path(start=graph.start_hub, graph=graph)
-    print(prev)
-    rev = path_finder.reconstruct_path(graph.start_hub, graph)
-    print(rev)
+    try:
+        graph: Graph = parse_config(args.map)
+        fly_in = Fly_in(graph)
+        fly_in.run()
+    except Exception as e:
+        print(e)
+    
+    # write_map(args.map)
+    # # print(graph, '\n')
+    # path_finder = PathFinder()
+    # path, prev = path_finder.build_path(start=graph.start_hub, graph=graph)
+    # print(prev)
+    # rev = path_finder.reconstruct_path(graph.start_hub, graph)
+    # print(rev)
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+
+    except Exception as e:
+        print(e)
