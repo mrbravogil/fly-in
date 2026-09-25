@@ -1,4 +1,6 @@
 import argparse
+import sys
+from pydantic import ValidationError
 from .fly_in import Fly_in
 from .config_parser import parse_config
 from .models.graph import Graph
@@ -24,29 +26,28 @@ def write_map(map: str) -> None:
             print(line)
 
 
-def main() -> None:
+if __name__ == '__main__':
 
-    print('\nWELCOME TO FLY-IN ✈️ ✈️ ✈️\n')
+    print('\n\x1b[40mWELCOME TO FLY-IN ✈️ ✈️ ✈️ \x1b[0m\n')
     args = parse_args()
     try:
         graph: Graph = parse_config(args.map)
         fly_in = Fly_in(graph)
         fly_in.run()
+
+    except FileNotFoundError as e:
+        print(f"\nFile not found: {e.filename}")
+        sys.exit(1)
+    except PermissionError as e:
+        print(f"\nPermission denied in this file {e.filename}",
+              file=sys.stderr)
+        sys.exit(1)
+    except ValidationError as e:
+        print("\nValidation error:")
+        print(e.errors())
+        sys.exit(1)
     except Exception as e:
-        print(e)
-    
-    # write_map(args.map)
-    # # print(graph, '\n')
-    # path_finder = PathFinder()
-    # path, prev = path_finder.build_path(start=graph.start_hub, graph=graph)
-    # print(prev)
-    # rev = path_finder.reconstruct_path(graph.start_hub, graph)
-    # print(rev)
-
-
-if __name__ == '__main__':
-    try:
-        main()
-
-    except Exception as e:
-        print(e)
+        print(f"\nAn unexpected error ocurred: {str(e)}")
+        sys.exit(1)
+    finally:
+        print("\x1b[40m⚙️ Programme finished...\x1b[0m\n")

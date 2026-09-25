@@ -56,7 +56,7 @@ class Hub(BaseModel):
     name: str
     x: int
     y: int
-    color: str = 'white'
+    colour: str = 'white'
     zone: str = 'normal'
     drones: list[Drone] = Field(default_factory=list)
     max_drones: int = Field(ge=1, default=9999)

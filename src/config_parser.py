@@ -142,13 +142,7 @@ class ConfigParser:
                 "Missing required connection entries in configuration file.")
 
     def _parse_drones(self, value: str) -> int:
-        """Parse and validate the nb_drones value.
-
-        Returns a positive integer drones.
-
-        Raises ValueError: If value is not a positive integer.
-        """
-
+        """Parse and validate the nb_drones value."""
         try:
             drones = int(value)
         except ValueError:
@@ -193,7 +187,7 @@ class ConfigParser:
             name=name,
             x=coordinates[0],
             y=coordinates[1],
-            color=p_values['color'],
+            colour=p_values['color'],
             zone=p_values.get('zone', 'normal'),
             max_drones=(int(p_values['max_drones'])
                         if p_values.get('max_drones') else 9999),
@@ -217,9 +211,9 @@ class ConfigParser:
                                  add_values: list[str]) -> dict[str, str]:
         processed_values: dict[str, str] = {}
         valid_keys = ['color', 'zone', 'max_drones']
-        valid_colors = ['red', 'green', 'blue', 'orange', 'yellow',
-                        'black', 'white', 'maroon', 'darkred', 'cyan',
-                        'gold', 'purple']
+        valid_colours = ['red', 'green', 'blue', 'orange', 'yellow',
+                         'black', 'white', 'maroon', 'darkred', 'cyan',
+                         'gold', 'purple']
         for value in add_values:
             k, v = value.split('=', 1)
             k = k.strip()
@@ -231,7 +225,7 @@ class ConfigParser:
             if k == 'color':
                 if not v.isalpha():
                     raise ValueError('you must provide a valid color name. '
-                                     f'Example: {valid_colors}')
+                                     f'Example: {valid_colours}')
 
             if k == 'zone':
                 if not v.isalpha():
