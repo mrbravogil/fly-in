@@ -230,10 +230,10 @@ class ConfigParser:
             if k == 'zone':
                 if not v.isalpha():
                     raise ValueError('you must provide a valid zone name: '
-                                     'priority, restricted')
+                                     'priority, restricted, normal, blocked.')
                 if v not in {'restricted', 'priority'}:
                     raise ValueError('you must provide a valid zone name: '
-                                     'priority, restricted')
+                                     'priority, restricted, normal, blocked.')
 
             if k == 'max_drones':
                 try:
@@ -248,6 +248,27 @@ class ConfigParser:
             processed_values[k] = v
 
         return processed_values
+
+    def _validate_hubs_names(self, hubs: list[Hub]) -> None:
+        saved_names: list[str] = []
+        for hub in hubs:
+            if hub.name in saved_names:
+                raise ValueError(
+                    f"Duplicate hub '{hub.name}' in configuration file.")
+            else:
+                saved_names.append(hub.name)
+
+    def _validate_hubs_coords(self, hubs: list[Hub]) -> None:
+        saved_coords: set[tuple[int, int]] = set()
+
+        for hub in hubs:
+            hub_coord = (hub.x, hub.y)
+            if hub_coord in saved_coords:
+                raise ValueError(
+                    f"Duplicate hub coords '{hub_coord}' in "
+                    "configuration file."
+                )
+            saved_coords.add(hub_coord)
 
     def _parse_connection(self, value: str) -> Connection:
         if '[' in value and ']' not in value:
@@ -276,7 +297,19 @@ class ConfigParser:
                               max_link_capacity=max_capacity)
 
         c1, c2 = value.strip().split('-')
-        return Connection(hub_a=c1, hub_b=c2, max_link_capacity=0)
+        return Connection(hub_a=c1, hub_b=c2, max_link_capacity=1)
+
+    def _validate_connections(self, connections: list[Connection]) -> None:
+        saved_conn: set[tuple[str, str]] = set()
+
+        for conn in connections:
+            conn_names = (conn.hub_a, conn.hub_b)
+            if conn_names in saved_conn:
+                raise ValueError(
+                    f"Duplicate hub connection '{conn_names}' in "
+                    "configuration file."
+                    )
+            saved_conn.add(conn_names)
 
     def parse(self) -> Graph:
         """Parse the configuration file and return a Config instance.
@@ -309,15 +342,19 @@ class ConfigParser:
             processed_hubs.append(h)
 
         processed_hubs.append(end_hub)
+        self._validate_hubs_names(processed_hubs)
+        self._validate_hubs_coords(processed_hubs)
 
         connections = raw_config['connections']
         processed_connections = []
         i = 1
         for connection in connections:
             c = self._parse_connection(connection)
-            c.id = str(i)
+            c.id = 'C' + str(i)
             processed_connections.append(c)
             i += 1
+
+        self._validate_connections(processed_connections)
 
         return Graph(
             drones=[],

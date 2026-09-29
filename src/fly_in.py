@@ -1,5 +1,6 @@
 from .pathfinding import PathFinder
 from .models.graph import Graph
+from .models.models import Drone, Hub
 
 COLOURS: dict[str, str] = {
     'red': '\x1b[38;5;196m',
@@ -41,6 +42,20 @@ class Fly_in():
 
         return True
 
+    def _assign_colour_code(self, next_hub: Hub, drone: Drone) -> str:
+        colour: str = ''
+        if next_hub.name == 'goal':
+            colour = 'red'
+        elif drone.current_hub:
+            colour = drone.current_hub.colour
+        code: str = ''
+        if colour in COLOURS:
+            code = COLOURS[colour]
+        else:
+            code = COLOURS['white']
+
+        return code
+
     def _record_move(self) -> str:
         turn_print: str = ''
         for drone in self.graph.drones:
@@ -50,12 +65,8 @@ class Fly_in():
                     connection = (
                         self.graph.find_connection(drone.current_hub.name,
                                                    next_hub.name))
-                    colour: str = ''
-                    if next_hub.name == 'goal':
-                        colour = 'red'
-                    else:
-                        colour = drone.current_hub.colour
-                    code: str = COLOURS[colour]
+
+                    code: str = self._assign_colour_code(next_hub, drone)
                     if connection is not None:
                         if drone.can_move(connection) is True:
                             turn_print += (f'{code}[{drone.id}: '
@@ -76,3 +87,4 @@ class Fly_in():
             turns += 1
 
         print(f'\n\x1b[40mTURNS: {turns}\x1b[0m\n')
+

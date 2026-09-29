@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-
 from pydantic import BaseModel, model_validator
 
 from .models import Connection, Hub, Drone
@@ -62,12 +60,13 @@ class Graph(BaseModel):
             raise ValueError('coordinates of start and end must be unique.')
         return self
 
-    @model_validator(mode='after')
-    def validate_output_path(self) -> Graph:
-        parent_dir = os.path.dirname(os.path.abspath(self.output_file))
-        if parent_dir and not os.path.isdir(parent_dir):
-            raise Exception(f"output directory does not exist: '{parent_dir}'")
-        return self
+    # @model_validator(mode='after')
+    # def validate_output_path(self) -> Graph:
+    #     parent_dir = os.path.dirname(os.path.abspath(self.output_file))
+    #     if parent_dir and not os.path.isdir(parent_dir):
+    #         raise Exception(f"output directory does not exist:
+    # '{parent_dir}'")
+    #     return self
 
     @model_validator(mode='after')
     def validate_connections(self) -> Graph:

@@ -102,7 +102,7 @@ class Connection(BaseModel):
     hub_a: str
     hub_b: str
     current_drones: list[Drone] = []
-    max_link_capacity: int = 9999
+    max_link_capacity: int = 1
 
     def has_capacity(self) -> bool:
         if len(self.current_drones) == self.max_link_capacity:
