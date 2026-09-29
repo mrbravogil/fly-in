@@ -82,13 +82,30 @@ class Graph(BaseModel):
 
             a_hub: Hub = self._find_hub(a)
             b_hub: Hub = self._find_hub(b)
-            a_hub.connections.append(b_hub)
-            b_hub.connections.append(a_hub)
 
             if a_hub in a_hub.connections or b_hub in b_hub.connections:
                 raise ValueError(
                     'connection error: a hub cannot connect to itself.')
+            a_hub.connections.append(b_hub)
+            b_hub.connections.append(a_hub)
+
+        self._bidirectional_coon()
+
         return self
+
+    def _bidirectional_coon(self) -> None:
+        i = len(self.connections) + 1
+        current_coons: list[Connection] = self.connections
+        bi_coons: list[Connection] = []
+
+        for c in current_coons:
+            a, b = c.hub_a, c.hub_b
+            id: str = f'C{str(i)}'
+            bi_conn = Connection(id=id, hub_a=b, hub_b=a)
+            bi_coons.append(bi_conn)
+            i += 1
+
+        self.connections.extend(bi_coons)
 
     def create_drones(self) -> None:
         drones: list[Drone] = []

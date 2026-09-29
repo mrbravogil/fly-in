@@ -87,4 +87,4 @@ class Fly_in():
             turns += 1
 
         print(f'\n\x1b[40mTURNS: {turns}\x1b[0m\n')
-
+        # print(self.graph.connections)

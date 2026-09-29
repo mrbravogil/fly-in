@@ -45,10 +45,15 @@ class Drone(BaseModel):
         return self.current_hub
 
     def move_next_hub(self, hub: 'Hub') -> None:
-        if hub.max_drone_capacity() is False and self.current_hub:
-            if len(self.current_hub.drones):
-                self.current_hub.drones.pop(0)
-            self.current_hub = hub
+        if hub.max_drone_capacity() is True or self.current_hub is None:
+            return
+
+        previous_hub = self.current_hub
+        if self in previous_hub.drones:
+            previous_hub.drones.remove(self)
+
+        self.current_hub = hub
+        if self not in hub.drones:
             hub.drones.append(self)
 
     def has_finished(self) -> bool:
@@ -105,14 +110,17 @@ class Connection(BaseModel):
     max_link_capacity: int = 1
 
     def has_capacity(self) -> bool:
-        if len(self.current_drones) == self.max_link_capacity:
-            return False
-        return True
+        return len(self.current_drones) < self.max_link_capacity
 
-    def enter(self, drone: Drone) -> None:
-        if self.has_capacity is True:
+    def enter(self, drone: Drone) -> bool:
+        if not self.has_capacity():
+            return False
+
+        if drone not in self.current_drones:
             self.current_drones.append(drone)
             drone.current_connection = self
+
+        return True
 
     def leave(self, drone: Drone) -> None:
         self.current_drones.remove(drone)
