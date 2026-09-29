@@ -46,7 +46,9 @@ class PathFinder():
 
             # Stop early if we reached the destination hub, or if there is no
             # valid next hub to process.
-            if u.is_end or u is None:
+            if u is None or min_distance == float('inf'):
+                break
+            if u.is_end:
                 break
 
             visited[u.name] = True
@@ -58,13 +60,12 @@ class PathFinder():
                 if visited[v.name]:
                     continue
 
-                w: int = v.weight
                 # Ignore blocked/non-usable connections.
-                if w == 0 or v.max_drone_capacity():
+                if v.zone == 'blocked':
                     continue
 
                 # Candidate distance to neighbor through the current hub.
-                alt: float = distances[u.name] + w
+                alt: float = distances[u.name] + v.weight
 
                 # If this path is better, store the new distance and parent.
                 if alt < distances[v.name]:

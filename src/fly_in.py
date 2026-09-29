@@ -44,7 +44,7 @@ class Fly_in():
 
     def _assign_colour_code(self, next_hub: Hub, drone: Drone) -> str:
         colour: str = ''
-        if next_hub.name == 'goal':
+        if next_hub.is_end is True:
             colour = 'red'
         elif drone.current_hub:
             colour = drone.current_hub.colour

@@ -36,7 +36,7 @@ class Drone(BaseModel):
         i: int = 0
         for hub in self.path:
             if self.current_hub and hub.name == self.current_hub.name:
-                if self.path[i].name == 'goal':
+                if self.current_hub.is_end is True:
                     self.current_hub
                 else:
                     return self.path[i + 1]
