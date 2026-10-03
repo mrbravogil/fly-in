@@ -231,7 +231,7 @@ class ConfigParser:
                 if not v.isalpha():
                     raise ValueError('you must provide a valid zone name: '
                                      'priority, restricted, normal, blocked.')
-                if v not in {'restricted', 'priority'}:
+                if v not in {'restricted', 'priority', 'normal', 'blocked'}:
                     raise ValueError('you must provide a valid zone name: '
                                      'priority, restricted, normal, blocked.')
 
