@@ -1,6 +1,6 @@
 run:
 	uv run python -m src \
-		--map maps/challenger/01_the_impossible_dream.txt
+		--map maps/medium/02_circular_loop.txt
 
 install:
 	uv sync --no-install-project

@@ -23,22 +23,32 @@ class Drone(BaseModel):
         if next_hub is None:
             return False
 
-        elif (
-            next_hub is not None
-            and next_hub.max_drone_capacity() is False
-            and self.has_finished() is False
-        ):
-            return True
+        elif next_hub.zone == 'blocked':
+            return False
 
-        return False
+        elif next_hub.zone == 'restricted' and self.status == 'normal':
+            connection.enter(self)
+            return False
+
+        elif connection.has_capacity() is False:
+            return False
+
+        elif next_hub.max_drone_capacity() is True:
+            return False
+
+        elif self.has_finished() is True:
+            return False
+
+        elif next_hub.zone == 'restricted' and self.status == 'restricted':
+            connection.leave(self)
+
+        return True
 
     def next_hub(self) -> 'Hub' | None:
         i: int = 0
         for hub in self.path:
             if self.current_hub and hub.name == self.current_hub.name:
-                if self.current_hub.is_end is True:
-                    self.current_hub
-                else:
+                if self.current_hub.is_end is False:
                     return self.path[i + 1]
             i += 1
 
@@ -92,9 +102,7 @@ class Hub(BaseModel):
     occupied: bool = False
 
     def max_drone_capacity(self) -> bool:
-        if len(self.drones) == self.max_drones:
-            return True
-        return False
+        return len(self.drones) >= self.max_drones
 
     def define_hub_connections(self, graph: 'Graph') -> None:
         if len(self.connections) == 0:
@@ -119,12 +127,16 @@ class Connection(BaseModel):
         if drone not in self.current_drones:
             self.current_drones.append(drone)
             drone.current_connection = self
+            next_hub = drone.next_hub()
+            if next_hub is not None and next_hub.zone == 'restricted':
+                drone.status = 'restricted'
 
         return True
 
     def leave(self, drone: Drone) -> None:
-        self.current_drones.remove(drone)
-        drone.current_connection = None
+        if drone in self.current_drones:
+            self.current_drones.remove(drone)
+            drone.current_connection = None
 
 
 """model_rebuild() tells Pydantic to resolve forward references

@@ -83,9 +83,7 @@ class PathFinder():
         return map
 
     def reconstruct_path(self, start: Hub, graph: Graph) -> list[Hub]:
-        """Reconstruct path from end_hub to start_hub and returns
-        a list of indexed hubs.
-        """
+        """Reconstruct the route from the given current hub to the end hub."""
         _, prev = self.build_path(start, graph)
         end = graph.end_hub if graph.end_hub else None
         if not end:
@@ -95,10 +93,12 @@ class PathFinder():
         route: list[Hub] = [end]
         current: Hub = end
 
-        while current.name != graph.start_hub.name:
+        while current.name != start.name:
             parent_name = prev[current.name]
             if parent_name is None:
-                raise ValueError("No path from start to end")
+                raise ValueError(
+                    f"No path from {start.name} to {end.name}"
+                )
             current = hubs[parent_name]
             route.append(current)
 

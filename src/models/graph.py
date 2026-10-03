@@ -89,7 +89,7 @@ class Graph(BaseModel):
             a_hub.connections.append(b_hub)
             b_hub.connections.append(a_hub)
 
-        self._bidirectional_coon()
+        # self._bidirectional_coon()
 
         return self
 
@@ -101,7 +101,8 @@ class Graph(BaseModel):
         for c in current_coons:
             a, b = c.hub_a, c.hub_b
             id: str = f'C{str(i)}'
-            bi_conn = Connection(id=id, hub_a=b, hub_b=a)
+            bi_conn = Connection(id=id, hub_a=b, hub_b=a,
+                                 max_link_capacity=c.max_link_capacity)
             bi_coons.append(bi_conn)
             i += 1
 
