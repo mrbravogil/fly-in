@@ -93,8 +93,6 @@ class Fly_in():
 
     def _record_move(self, drone_movements: list[Drone]) -> str:
         turn_print: str = ''
-        planned_moves: list[tuple[Drone, Hub]] = []
-        arrivals: dict[str, int] = {}
 
         for drone in drone_movements:
             if not drone.current_hub:
@@ -111,32 +109,27 @@ class Fly_in():
             if connection is None:
                 continue
 
-            # reserva local del turno para no permitir dos drones
-            # en el mismo destino cuando ese destino tiene capacidad 1
-            arrivals[next_hub.name] = arrivals.get(next_hub.name, 0) + 1
-
-            if (
-                drone.can_move(connection) is True
-                and arrivals[next_hub.name] <= next_hub.max_drones
-            ):
-                planned_moves.append((drone, next_hub))
-
-        for drone, next_hub in planned_moves:
-            if drone.current_hub:
-                connection = self.graph.find_connection(
-                    drone.current_hub.name,
-                    next_hub.name
-                )
-                if connection is None:
+            if next_hub.zone == 'restricted' and drone.status == 'normal':
+                if next_hub.max_drone_capacity() is True:
                     continue
+                if connection.has_capacity() is False:
+                    continue
+                connection.enter(drone)
+                drone.status = 'restricted'
+                continue
 
-                if drone.can_move(connection) is True:
-                    code: str = self._assign_colour_code(next_hub, drone)
-                    turn_print += (
-                        f'{code}[{drone.id}: '
-                        f'{drone.current_hub.name} - {next_hub.name}] \x1b[0m'
-                    )
-                    drone.move_next_hub(next_hub)
+            if next_hub.zone == 'restricted' and drone.status == 'restricted':
+                if drone.current_connection is not None:
+                    drone.current_connection.leave(drone)
+                drone.status = 'normal'
+
+            if drone.can_move(connection) is True:
+                code: str = self._assign_colour_code(next_hub, drone)
+                turn_print += (
+                    f'{code}[{drone.id}: '
+                    f'{drone.current_hub.name} - {next_hub.name}] \x1b[0m'
+                )
+                drone.move_next_hub(next_hub)
 
         return turn_print
 
@@ -185,6 +178,7 @@ class Fly_in():
     def run(self) -> None:
         turns: int = 0
         max_turns: int = 10000
+        previous_state: tuple[tuple[str, str, str], ...] | None = None
 
         while self.all_drones_finished() is False:
             if turns >= max_turns:
@@ -194,24 +188,55 @@ class Fly_in():
                 )
 
             drone_movements: list[Drone] = []
+            current_state = tuple(
+                (drone.id, drone.current_hub.name if drone.current_hub else '', drone.status)
+                for drone in self.graph.drones
+            )
 
             for drone in self.graph.drones:
                 if drone.current_hub:
                     self.assign_path(drone, drone.current_hub)
                     next_hub: Hub | None = drone.next_hub()
-                    if next_hub:
-                        valid_drone = self._turn_validation(drone, next_hub)
-                        if valid_drone is True:
-                            drone_movements.append(drone)
-                        else:
-                            continue
+                    if next_hub is None:
+                        continue
 
-            if not drone_movements:
-                continue
+                    connection = self.graph.find_connection(
+                        drone.current_hub.name,
+                        next_hub.name
+                    )
+                    if connection is None:
+                        continue
+
+                    if next_hub.zone == 'restricted' and drone.status == 'normal':
+                        if next_hub.max_drone_capacity() is False and connection.has_capacity() is True:
+                            drone_movements.append(drone)
+                        continue
+
+                    if next_hub.zone == 'restricted' and drone.status == 'restricted':
+                        drone_movements.append(drone)
+                        continue
+
+                    if self._turn_validation(drone, next_hub) is True:
+                        drone_movements.append(drone)
 
             turn_print = self._record_move(drone_movements)
             if turn_print:
                 print(turn_print)
+
+            new_state = tuple(
+                (drone.id, drone.current_hub.name if drone.current_hub else '', drone.status)
+                for drone in self.graph.drones
+            )
+            if new_state == current_state:
+                turns += 1
+                if turns >= max_turns:
+                    raise RuntimeError(
+                        'Simulation stalled: no progress was made after '
+                        f'{max_turns} turns.'
+                    )
+                continue
+
+            previous_state = new_state
             turns += 1
 
         print(f'\n\x1b[40mTURNS: {turns}\x1b[0m\n')

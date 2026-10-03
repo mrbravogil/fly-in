@@ -23,24 +23,20 @@ class Drone(BaseModel):
         if next_hub is None:
             return False
 
-        elif next_hub.zone == 'blocked':
+        if next_hub.zone == 'blocked':
             return False
 
-        elif next_hub.zone == 'restricted' and self.status == 'normal':
-            connection.enter(self)
+        if next_hub.max_drone_capacity() is True:
             return False
 
-        elif connection.has_capacity() is False:
+        if self.has_finished() is True:
             return False
 
-        elif next_hub.max_drone_capacity() is True:
-            return False
+        if next_hub.zone == 'restricted' and self.status == 'restricted':
+            return True
 
-        elif self.has_finished() is True:
+        if connection.has_capacity() is False:
             return False
-
-        elif next_hub.zone == 'restricted' and self.status == 'restricted':
-            connection.leave(self)
 
         return True
 
@@ -62,7 +58,12 @@ class Drone(BaseModel):
         if self in previous_hub.drones:
             previous_hub.drones.remove(self)
 
+        if self.current_connection is not None:
+            self.current_connection.leave(self)
+
         self.current_hub = hub
+        self.status = 'normal'
+
         if self not in hub.drones:
             hub.drones.append(self)
 
@@ -93,7 +94,7 @@ class Hub(BaseModel):
     colour: str = 'white'
     zone: str = 'normal'
     drones: list[Drone] = Field(default_factory=list)
-    max_drones: int = Field(ge=1, default=9999)
+    max_drones: int = Field(ge=1, default=1)
     connections: list['Hub'] = Field(default_factory=list)
     weight: int = 0
     reserved: bool = False
