@@ -26,7 +26,6 @@ class Graph(BaseModel):
     height: int = 0
     connections: list[Connection]
     output_file: str
-    turns: int
 
     @model_validator(mode='after')
     def graph_dimensions(self) -> Graph:

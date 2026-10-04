@@ -14,11 +14,13 @@ class Drone(BaseModel):
     id: str = 'D0'
     current_hub: Hub | None = None
     current_connection: Connection | None = None
+    reserved_hub: str | None = None
+    reserved_turn: int | None = None
     path: list[Hub] = []
     path_index: int = 0
     status: str = 'normal'
 
-    def can_move(self, connection: 'Connection') -> bool:
+    def can_move(self, connection: 'Connection', turn: int) -> bool:
         next_hub = self.next_hub()
         if next_hub is None:
             return False
@@ -26,7 +28,7 @@ class Drone(BaseModel):
         if next_hub.zone == 'blocked':
             return False
 
-        if next_hub.max_drone_capacity() is True:
+        if next_hub.max_drone_capacity(turn) is True:
             return False
 
         if self.has_finished() is True:
@@ -35,7 +37,7 @@ class Drone(BaseModel):
         if next_hub.zone == 'restricted' and self.status == 'restricted':
             return True
 
-        if connection.has_capacity() is False:
+        if connection.has_capacity(turn) is False:
             return False
 
         return True
@@ -50,8 +52,8 @@ class Drone(BaseModel):
 
         return self.current_hub
 
-    def move_next_hub(self, hub: 'Hub') -> None:
-        if hub.max_drone_capacity() is True or self.current_hub is None:
+    def move_next_hub(self, hub: 'Hub', turn: int) -> None:
+        if hub.max_drone_capacity(turn) is True or self.current_hub is None:
             return
 
         previous_hub = self.current_hub
@@ -94,16 +96,21 @@ class Hub(BaseModel):
     colour: str = 'white'
     zone: str = 'normal'
     drones: list[Drone] = Field(default_factory=list)
-    max_drones: list[int] = Field(default_factory=list)
+    max_drones: int = 9999
+    turn_capacity: dict[int, int] = Field(default_factory=dict)
     connections: list['Hub'] = Field(default_factory=list)
-    weight: int = 0
+    weight: float = 0.0
     reserved: bool = False
     is_start: bool = False
     is_end: bool = False
     occupied: bool = False
 
-    def max_drone_capacity(self) -> bool:
-        return len(self.drones) >= self.max_drones[0]
+    def max_drone_capacity(self, turn: int) -> bool:
+        reserved: int = self.turn_capacity.get(turn, 0)
+        return (len(self.drones) + reserved) >= self.max_drones
+
+    def reserve_turn(self, turn: int) -> None:
+        self.turn_capacity[turn] = self.turn_capacity.get(turn, 0) + 1
 
     def define_hub_connections(self, graph: 'Graph') -> None:
         if len(self.connections) == 0:
@@ -116,13 +123,18 @@ class Connection(BaseModel):
     hub_a: str
     hub_b: str
     current_drones: list[Drone] = []
-    max_link_capacity: list[int] = Field(default_factory=list)
+    turn_capacity: dict[int, int] = Field(default_factory=dict)
+    max_link_capacity: int = 9999
 
-    def has_capacity(self) -> bool:
-        return len(self.current_drones) < self.max_link_capacity[0]
+    def has_capacity(self, turn: int) -> bool:
+        self.turn_capacity[turn] = len(self.current_drones)
+        return self.turn_capacity[turn] < self.max_link_capacity
 
-    def enter(self, drone: Drone) -> bool:
-        if not self.has_capacity():
+    def reserve_turn(self, turn: int) -> None:
+        self.turn_capacity[turn] = self.turn_capacity.get(turn, 0) + 1
+
+    def enter(self, drone: Drone, turn: int) -> bool:
+        if not self.has_capacity(turn):
             return False
 
         if drone not in self.current_drones:

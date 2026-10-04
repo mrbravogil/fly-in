@@ -1,6 +1,7 @@
 from .pathfinding import PathFinder
 from .models.graph import Graph
 from .models.models import Drone, Hub
+from .planner import Planner
 
 COLOURS: dict[str, str] = {
     'red': '\x1b[38;5;196m',
@@ -23,6 +24,8 @@ COLOURS: dict[str, str] = {
 class Fly_in():
     path_finder: PathFinder = PathFinder()
     graph: Graph
+    planner: Planner
+    reservations: dict[tuple, int] = {}
 
     def __init__(self, graph: Graph) -> None:
         self.graph = graph
@@ -31,10 +34,14 @@ class Fly_in():
         for drone in self.graph.drones:
             drone.current_hub = self.graph.start_hub
 
-    def assign_path(self, drone: Drone, current_hub: Hub) -> None:
+        self.planner = Planner(graph)
+        self.reservations = {}
+
+    def assign_path(self, drone: Drone, current_hub: Hub,
+                    turn: int, reservations: dict[tuple, int]) -> None:
         if drone.current_hub:
             drone.path = self.path_finder.reconstruct_path(
-                    drone.current_hub, self.graph
+                    drone.current_hub, self.graph, turn, reservations
                 )
 
     def all_drones_finished(self) -> bool:
@@ -58,7 +65,7 @@ class Fly_in():
 
         return code
 
-    def _turn_validation(self, drone: Drone, next_hub: Hub) -> bool:
+    def _turn_validation(self, drone: Drone, next_hub: Hub, turn: int) -> bool:
         if not drone.current_hub:
             return False
 
@@ -67,46 +74,27 @@ class Fly_in():
         if connection is None:
             return False
 
-        return drone.can_move(connection) is True
+        return drone.can_move(connection, turn) is True
 
-
-    def _record_move(self, drone_movements: list[Drone]) -> str:
+    def _record_move(
+        self,
+        drone_movements: list[tuple[Drone, Hub, Hub]],
+    ) -> str:
         turn_print: str = ''
 
-        for drone in drone_movements:
-            if not drone.current_hub:
-                continue
-
-            next_hub = drone.next_hub()
-            if next_hub is None:
-                continue
-
+        for drone, from_hub, to_hub in drone_movements:
             connection = self.graph.find_connection(
-                drone.current_hub.name,
-                next_hub.name
+                from_hub.name,
+                to_hub.name
             )
             if connection is None:
                 continue
 
-            if next_hub.zone == 'restricted' and drone.status == 'normal':
-                if drone.can_move(connection) is False:
-                    continue
-                connection.enter(drone)
-                drone.status = 'restricted'
-                continue
-
-            if next_hub.zone == 'restricted' and drone.status == 'restricted':
-                if drone.current_connection is not None:
-                    drone.current_connection.leave(drone)
-                drone.status = 'normal'
-
-            if drone.can_move(connection) is True:
-                code: str = self._assign_colour_code(next_hub, drone)
-                turn_print += (
-                    f'{code}[{drone.id}: '
-                    f'{drone.current_hub.name} - {next_hub.name}] \x1b[0m'
-                )
-                drone.move_next_hub(next_hub)
+            code: str = self._assign_colour_code(to_hub, drone)
+            turn_print += (
+                f'{code}[{drone.id}: '
+                f'{from_hub.name} - {to_hub.name}] \x1b[0m'
+            )
 
         return turn_print
 
@@ -121,39 +109,11 @@ class Fly_in():
                     f'{max_turns} turns.'
                 )
 
-            drone_movements: list[Drone] = []
+            schedule: list[tuple] = self.planner.plan(self.graph.drones,
+                                                      turns,
+                                                      self.reservations)
 
-            for drone in self.graph.drones:
-                if drone.current_hub:
-                    self.assign_path(drone, drone.current_hub)
-                    next_hub: Hub | None = drone.next_hub()
-                    if next_hub is None:
-                        continue
-
-                    connection = self.graph.find_connection(
-                        drone.current_hub.name,
-                        next_hub.name
-                    )
-                    if connection is None:
-                        continue
-
-                    if (
-                        next_hub.zone == 'restricted'
-                        and drone.status == 'normal'
-                    ):
-                        if drone.can_move(connection) is True:
-                            drone_movements.append(drone)
-                        continue
-
-                    if (
-                        next_hub.zone == 'restricted'
-                        and drone.status == 'restricted'
-                    ):
-                        drone_movements.append(drone)
-                        continue
-
-                    if self._turn_validation(drone, next_hub) is True:
-                        drone_movements.append(drone)
+            drone_movements = self._execute_schedule(schedule, turns)
 
             turn_print = self._record_move(drone_movements)
             if turn_print:
@@ -161,3 +121,51 @@ class Fly_in():
             turns += 1
 
         print(f'\n\x1b[40mTURNS: {turns}\x1b[0m\n')
+
+    def _execute_schedule(self,
+                          schedule: list[tuple],
+                          turn: int) -> list[tuple[Drone, Hub, Hub]]:
+        drone_movements: list[tuple[Drone, Hub, Hub]] = []
+
+        for action in schedule:
+            drone, next_hub, t = action
+
+            if self._turn_validation(drone, next_hub, t):
+                if drone.current_hub is None:
+                    continue
+                from_hub: Hub = drone.current_hub
+                drone.path = self.path_finder.reconstruct_path(
+                    drone.current_hub, self.graph, turn, self.reservations
+                )
+                drone.move_next_hub(next_hub, t)
+
+                if drone.current_hub is None:
+                    continue
+                if drone.current_hub.name != next_hub.name:
+                    continue
+
+                drone_movements.append((drone, from_hub, next_hub))
+                self._reserve_capacity(drone, next_hub, turn + 1)
+
+        return drone_movements
+
+    def _reserve_capacity(self, drone: Drone, hub: Hub, turn: int) -> None:
+        """Reserves a hub and connection for drone in the current turn"""
+        if drone.current_hub is None:
+            return
+
+        connection = self.graph.find_connection(drone.current_hub.name,
+                                                hub.name)
+        if connection is None:
+            return
+
+        key_hub = (hub.name, turn)
+        self.reservations[key_hub] = self.reservations.get(key_hub, 0) + 1
+        hub.reserve_turn(turn)
+
+        key_conn = (hub.name, turn)
+        self.reservations[key_conn] = self.reservations.get(key_conn, 0) + 1
+        connection.reserve_turn(turn)
+
+        drone.reserved_turn = turn
+        drone.reserved_hub = hub.name

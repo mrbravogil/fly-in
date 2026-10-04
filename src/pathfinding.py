@@ -4,6 +4,7 @@ This module provides Dijkstra's algorithm for calculating the shortest
 weighted paths between hubs in a graph.
 """
 from typing import Any
+import random
 from .models.graph import Graph
 from .models.models import Hub
 
@@ -16,63 +17,102 @@ class PathFinder():
     traversing connected hubs based on their connection weights.
     """
 
-    def build_path(self, start: Hub, graph: Graph) -> tuple[dict[str, Any],
-                                                            dict[str, Any]]:
-        """Build shortest-path data from a starting hub."""
-        size = len(graph.hubs)
-        # distances keeps the current best known cost from start to each hub.
-        # Every hub starts as unreachable (infinity) except the starting hub.
+    def build_path(self, start: Hub,
+                   graph: Graph,
+                   turn: int,
+                   reservations: dict
+                   ) -> tuple[dict[str, Any], dict[str, Any]]:
+
         distances: dict[str, float | int] = self.build_hub_map(graph,
                                                                float('inf'))
         distances[start.name] = 0
-        # prev stores the predecessor hub used to reach each hub with
-        # the best known cost; this is later used to reconstruct routes.
         prev: dict[str, str | Any] = self.build_hub_map(graph,
                                                         None)
-        # visited marks hubs whose minimum distance is already finalized.
         visited = self.build_hub_map(graph,
                                      False)
 
-        for _ in range(size):
-            # Pick the next hub to process: the unvisited hub with the
-            # smallest temporary distance. In Dijkstra, this choice is safe
-            # because all edge weights are non-negative.
+        while True:
             min_distance = float('inf')
-            u: Hub
-            for i in graph.hubs:
-                if not visited[i.name] and distances[i.name] < min_distance:
-                    min_distance = distances[i.name]
-                    u = i
+            u: Hub | None = None
 
-            # Stop early if we reached the destination hub, or if there is no
-            # valid next hub to process.
+            for hub in graph.hubs:
+                if (
+                    not visited[hub.name]
+                    and distances[hub.name] < min_distance
+                ):
+                    u = hub
+                    min_distance = distances[hub.name]
+
             if u is None or min_distance == float('inf'):
                 break
             if u.is_end:
                 break
 
             visited[u.name] = True
-
-            # Try to improve the best known distance for each neighbor
-            # connected to the current hub.
             for v in u.connections:
-                # Skip neighbors that are already finalized.
                 if visited[v.name]:
                     continue
-
-                # Ignore blocked/non-usable connections.
                 if v.zone == 'blocked':
                     continue
 
-                # Candidate distance to neighbor through the current hub.
-                alt: float = distances[u.name] + v.weight
+                base_cost: float = v.weight
+                penalty = self.estimate_congestion(v, turn, reservations)
+                alt = distances[u.name] + base_cost + penalty
 
-                # If this path is better, store the new distance and parent.
                 if alt < distances[v.name]:
                     distances[v.name] = alt
                     prev[v.name] = u.name
 
         return distances, prev
+
+    def estimate_congestion(self, hub: Hub, turn: int,
+                            reservations: dict) -> float:
+
+        """Calculates path congestion in the next five turns.
+        If the hub is out of capacity, it returns a high
+        penalty cost.
+        """
+
+        penalty: float = 0.0
+
+        for t in range(turn, turn + 5):
+            occupied = reservations.get((hub.name, t), 0)
+            if occupied >= hub.max_drones:
+                penalty += 10.0
+            elif occupied >= hub.max_drones * 0.7:
+                penalty += 3.0
+
+        return penalty
+
+    def get_alternative_routes(self, start: Hub,
+                               graph: Graph,
+                               turn: int,
+                               reservations: dict[tuple, int]
+                               ) -> list[list[Hub]]:
+        """Returns multiple routes, not only the shortest path."""
+
+        routes: list[list[Hub]] = []
+        modified_graph: Graph
+
+        for attempt in range(3):
+            modified_graph = self.graph_with_random_weights(graph, attempt)
+            route = self.reconstruct_path(start, modified_graph,
+                                          turn, reservations)
+            routes.append(route)
+
+        return routes
+
+    def graph_with_random_weights(self, graph: Graph, attempt: int) -> Graph:
+        """Returns a copy of the original graph with modified weight values."""
+
+        modified_graph: Graph = graph.model_copy(deep=True)
+
+        for hub in modified_graph.hubs:
+            num = random.uniform(-0.3, 0.3)
+            n_weight = hub.weight * (1 + num + attempt * 0.1)
+            hub.weight = max(1, n_weight)
+
+        return modified_graph
 
     def build_hub_map(self, graph: Graph, type: Any) -> dict[str, Any]:
         """Create a dictionary containing every hub in the graph."""
@@ -82,9 +122,13 @@ class PathFinder():
 
         return map
 
-    def reconstruct_path(self, start: Hub, graph: Graph) -> list[Hub]:
+    def reconstruct_path(self,
+                         start: Hub,
+                         graph: Graph,
+                         turn: int,
+                         reservations: dict[tuple, int]) -> list[Hub]:
         """Reconstruct the route from the given current hub to the end hub."""
-        _, prev = self.build_path(start, graph)
+        _, prev = self.build_path(start, graph, turn, reservations)
         end = graph.end_hub if graph.end_hub else None
         if not end:
             raise ValueError("No end hub in graph")
@@ -106,11 +150,16 @@ class PathFinder():
 
         return route
 
-    def get_next_hub(self, start: Hub, graph: Graph) -> Hub:
+    def get_next_hub(self,
+                     start: Hub,
+                     graph: Graph,
+                     turn: int,
+                     reservations: dict[tuple, int]) -> Hub:
         """Returns the path's next hub"""
-        route: list[Hub] = self.reconstruct_path(start, graph)
+        route: list[Hub] = self.reconstruct_path(start, graph,
+                                                 turn, reservations)
 
         if len(route) < 2:
-            raise ValueError("No next hop available")
+            raise ValueError("No next hub available")
 
         return route[1]
