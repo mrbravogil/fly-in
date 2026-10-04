@@ -26,6 +26,7 @@ class Graph(BaseModel):
     height: int = 0
     connections: list[Connection]
     output_file: str
+    turns: int
 
     @model_validator(mode='after')
     def graph_dimensions(self) -> Graph:
@@ -89,7 +90,7 @@ class Graph(BaseModel):
             a_hub.connections.append(b_hub)
             b_hub.connections.append(a_hub)
 
-        # self._bidirectional_coon()
+        self._bidirectional_coon()
 
         return self
 

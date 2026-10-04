@@ -1,6 +1,6 @@
 run:
 	uv run python -m src \
-		--map maps/medium/02_circular_loop.txt
+		--map maps/hard/01_maze_nightmare.txt
 
 install:
 	uv sync --no-install-project

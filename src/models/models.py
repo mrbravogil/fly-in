@@ -94,7 +94,7 @@ class Hub(BaseModel):
     colour: str = 'white'
     zone: str = 'normal'
     drones: list[Drone] = Field(default_factory=list)
-    max_drones: int = Field(ge=1, default=1)
+    max_drones: list[int] = Field(default_factory=list)
     connections: list['Hub'] = Field(default_factory=list)
     weight: int = 0
     reserved: bool = False
@@ -103,7 +103,7 @@ class Hub(BaseModel):
     occupied: bool = False
 
     def max_drone_capacity(self) -> bool:
-        return len(self.drones) >= self.max_drones
+        return len(self.drones) >= self.max_drones[0]
 
     def define_hub_connections(self, graph: 'Graph') -> None:
         if len(self.connections) == 0:
@@ -116,10 +116,10 @@ class Connection(BaseModel):
     hub_a: str
     hub_b: str
     current_drones: list[Drone] = []
-    max_link_capacity: int = 1
+    max_link_capacity: list[int] = Field(default_factory=list)
 
     def has_capacity(self) -> bool:
-        return len(self.current_drones) < self.max_link_capacity
+        return len(self.current_drones) < self.max_link_capacity[0]
 
     def enter(self, drone: Drone) -> bool:
         if not self.has_capacity():
