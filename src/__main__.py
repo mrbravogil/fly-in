@@ -1,3 +1,5 @@
+"""Entry point for running the Fly-in simulation from the CLI."""
+
 import argparse
 import sys
 from pydantic import ValidationError

@@ -7,3 +7,5 @@ data_*/
 .env
 .atl/
 .vscode/
+docs/
+subject.md

@@ -22,6 +22,8 @@ class PathFinder():
                    turn: int,
                    reservations: dict
                    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Finds the shortest and most cost-effective path from the
+        drone's current hub to the end hub."""
 
         distances: dict[str, float | int] = self.build_hub_map(graph,
                                                                float('inf'))
@@ -89,7 +91,7 @@ class PathFinder():
                                turn: int,
                                reservations: dict[tuple, int]
                                ) -> list[list[Hub]]:
-        """Returns multiple routes, not only the shortest path."""
+        """Return several candidate routes from the current hub."""
 
         routes: list[list[Hub]] = []
         modified_graph: Graph
@@ -115,7 +117,7 @@ class PathFinder():
         return modified_graph
 
     def build_hub_map(self, graph: Graph, type: Any) -> dict[str, Any]:
-        """Create a dictionary containing every hub in the graph."""
+        """Create a mapping of every hub name to a default value."""
         map: dict[str, Any] = {}
         for h in graph.hubs:
             map[h.name] = type

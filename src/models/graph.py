@@ -1,3 +1,5 @@
+"""Graph model and validation rules for the Fly-in simulation."""
+
 from __future__ import annotations
 
 from pydantic import BaseModel, model_validator
@@ -10,11 +12,14 @@ class Graph(BaseModel):
 
     Attributes:
 
-    drones: Number of drones used in the simulation
-    start_hub: Coordinates and color of start hub
-    hubs: Coordinates of different hubs
-    end_hub: Coordinates and color of end hub
-    connections: Connections between hubs
+    drones: List of drones registered in the simulation.
+    n_drones: Number of drones used in the simulation.
+    start_hub: Coordinates and color of start hub.
+    hubs: Coordinates of different hubs.
+    end_hub: Coordinates and color of end hub.
+    connections: Connections between hubs.
+    width: Graph's width based on hubs' coordinates.
+    height: Graph's height based on hubs' coordinates.
 
     """
     drones: list[Drone]
@@ -22,13 +27,13 @@ class Graph(BaseModel):
     start_hub: Hub
     end_hub: Hub
     hubs: list[Hub]
+    connections: list[Connection]
     width: int = 0
     height: int = 0
-    connections: list[Connection]
-    output_file: str
 
     @model_validator(mode='after')
     def graph_dimensions(self) -> Graph:
+        """Compute the graph width and height from the hub coordinates."""
         min_x = min(h.x for h in self.hubs)
         min_y = min(h.y for h in self.hubs)
         max_x = max(h.x for h in self.hubs)
@@ -40,6 +45,7 @@ class Graph(BaseModel):
 
     @model_validator(mode='after')
     def get_hub_weights(self) -> Graph:
+        """Assign a weight to each hub according to its zone."""
         for v in self.hubs:
             if v.zone == 'normal':
                 v.weight = 1
@@ -53,6 +59,7 @@ class Graph(BaseModel):
 
     @model_validator(mode='after')
     def validate_start_end(self) -> Graph:
+        """Ensure the start and end hubs are not at the same position."""
         sx, sy = self.start_hub.x, self.start_hub.y
         ex, ey = self.end_hub.x, self.end_hub.y
 
@@ -60,16 +67,9 @@ class Graph(BaseModel):
             raise ValueError('coordinates of start and end must be unique.')
         return self
 
-    # @model_validator(mode='after')
-    # def validate_output_path(self) -> Graph:
-    #     parent_dir = os.path.dirname(os.path.abspath(self.output_file))
-    #     if parent_dir and not os.path.isdir(parent_dir):
-    #         raise Exception(f"output directory does not exist:
-    # '{parent_dir}'")
-    #     return self
-
     @model_validator(mode='after')
     def validate_connections(self) -> Graph:
+        """Verify that every connection references valid hubs."""
         hub_list: list[str] = []
         for h in self.hubs:
             hub_list.append(h.name)
@@ -94,6 +94,7 @@ class Graph(BaseModel):
         return self
 
     def _bidirectional_coon(self) -> None:
+        """Add the reverse links for each connection."""
         i = len(self.connections) + 1
         current_coons: list[Connection] = self.connections
         bi_coons: list[Connection] = []
@@ -109,6 +110,7 @@ class Graph(BaseModel):
         self.connections.extend(bi_coons)
 
     def create_drones(self) -> None:
+        """Create the drone instances and place them at the start hub."""
         drones: list[Drone] = []
         i = 1
         while i <= self.n_drones:
@@ -120,6 +122,7 @@ class Graph(BaseModel):
         self.drones = drones
 
     def _find_hub(self, name: str) -> Hub:
+        """Return a hub from the graph by its name."""
         for hub in self.hubs:
             if name == hub.name:
                 return hub
@@ -127,6 +130,7 @@ class Graph(BaseModel):
         raise ValueError(f'hub error, no hub registered with name: {name}')
 
     def find_connection(self, hub_a: str, hub_b: str) -> Connection | None:
+        """Return the connection between two hubs, if it exists."""
         for connection in self.connections:
             if connection.hub_a == hub_a and connection.hub_b == hub_b:
                 return connection

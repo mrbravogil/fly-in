@@ -4,14 +4,21 @@ from .pathfinding import PathFinder
 
 
 class Planner():
+    """Planner for assigning the next move for each drone.
+
+    The planner groups drones by urgency, evaluates alternative routes,
+    estimates congestion, and selects the least expensive valid move for
+    the current turn.
+    """
 
     def __init__(self, graph: Graph):
+        """Initialize the planner with the current graph."""
         self.graph = graph
         self.path_finder = PathFinder()
 
     def plan(self, drones: list[Drone], turn: int,
              reservations: dict[tuple, int]) -> list[tuple]:
-        """Return the drones's movements for the current turn"""
+        """Create the next move schedule for all drones."""
 
         schedule: list[tuple] = []
         groups: list[list[Drone]] = self.group_drones(drones,
@@ -40,7 +47,7 @@ class Planner():
     def group_drones(self, drones: list[Drone],
                      turn: int, reservations: dict[tuple, int]
                      ) -> list[list[Drone]]:
-        """Returns groups of drones sorted by urgency."""
+        """Group drones by urgency to the end hub."""
         groups: list[list[Drone]] = [[], [], []]
 
         for drone in drones:
@@ -61,8 +68,7 @@ class Planner():
 
     def distance_to_end(self, drone: Drone,
                         turn: int, reservations: dict[tuple, int]) -> int:
-        """Return distance between drone's current hub to
-        end hub."""
+        """Return the drone distance to the end hub."""
         if drone.current_hub is None:
             return 999
 
@@ -75,7 +81,7 @@ class Planner():
                        drone: Drone,
                        turn: int,
                        reservations: dict[tuple, int]) -> list[list[Hub]]:
-        """Returns three possible routes using pathfinder."""
+        """Return alternative routes for the drone."""
 
         if drone.current_hub is None:
             return []
@@ -88,7 +94,7 @@ class Planner():
 
     def select_best_route(self, routes: list[list[Hub]], turn: int,
                           reservations: dict[tuple, int]) -> list[Hub]:
-        """Returns the best route from the given list of routes."""
+        """Choose the least congested valid route."""
 
         best_route: list[Hub] = []
         best_score = float('inf')
@@ -112,14 +118,14 @@ class Planner():
 
     def has_capacity(self, hub: Hub, turn: int,
                      reservations: dict[tuple, int]) -> bool:
-        """Verifies hub's capacity for the current turn."""
+        """Return whether the hub has free capacity this turn."""
         occupied: int = reservations.get((hub.name, turn), 0)
 
         return occupied < hub.max_drones
 
     def validate_move(self, drone: Drone, next_hub: Hub,
                       turn: int, reservations: dict[tuple, int]) -> bool:
-        """Validates drone's movement."""
+        """Validate a drone move against capacity and rules."""
 
         if drone.current_hub is None:
             return False

@@ -1,11 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from pydantic import BaseModel, Field
-
-if TYPE_CHECKING:
-    from .graph import Graph
 
 
 class Drone(BaseModel):
@@ -21,6 +16,7 @@ class Drone(BaseModel):
     status: str = 'normal'
 
     def can_move(self, connection: 'Connection', turn: int) -> bool:
+        """Check whether the drone can move across a connection this turn."""
         next_hub = self.next_hub()
         if next_hub is None:
             return False
@@ -43,6 +39,7 @@ class Drone(BaseModel):
         return True
 
     def next_hub(self) -> 'Hub' | None:
+        """Return the next hub along the drone's planned route."""
         i: int = 0
         for hub in self.path:
             if self.current_hub and hub.name == self.current_hub.name:
@@ -53,6 +50,7 @@ class Drone(BaseModel):
         return self.current_hub
 
     def move_next_hub(self, hub: 'Hub', turn: int) -> None:
+        """Move the drone to the destination hub for this turn."""
         if hub.max_drone_capacity(turn) is True or self.current_hub is None:
             return
 
@@ -70,25 +68,14 @@ class Drone(BaseModel):
             hub.drones.append(self)
 
     def has_finished(self) -> bool:
+        """Return True when the drone has reached the end hub."""
         if self.current_hub and self.current_hub.is_end:
             return True
         return False
 
 
 class Hub(BaseModel):
-    """Represents a zone or hub in the network.
-
-    Attributes:
-        color: ANSI color code for terminal visualization.
-        type: Zone type ("start", "end", "hub", or "normal").
-        reset: ANSI reset code for terminal color.
-        drones: List of drones currently occupying this cell.
-        capacity: Maximum number of drones allowed in this cell.
-        zone: Zone behavior type ("normal", "restricted", "priority",
-            "blocked").
-        reserved: Count of reserved capacity slots (unused in current
-            implementation).
-    """
+    """Represents a zone or hub in the network."""
 
     name: str
     x: int
@@ -106,18 +93,19 @@ class Hub(BaseModel):
     occupied: bool = False
 
     def max_drone_capacity(self, turn: int) -> bool:
+        """Return True when the hub is full for the given turn."""
+
         reserved: int = self.turn_capacity.get(turn, 0)
         return (len(self.drones) + reserved) >= self.max_drones
 
     def reserve_turn(self, turn: int) -> None:
-        self.turn_capacity[turn] = self.turn_capacity.get(turn, 0) + 1
+        """Reserve one slot in the hub for the given turn."""
 
-    def define_hub_connections(self, graph: 'Graph') -> None:
-        if len(self.connections) == 0:
-            raise ValueError('hub error, no connections found.')
+        self.turn_capacity[turn] = self.turn_capacity.get(turn, 0) + 1
 
 
 class Connection(BaseModel):
+    """Represents a link between two hubs in the graph."""
 
     id: str = 'C0'
     hub_a: str
@@ -127,13 +115,17 @@ class Connection(BaseModel):
     max_link_capacity: int = 9999
 
     def has_capacity(self, turn: int) -> bool:
+        """Return True when the connection still has room for this turn."""
         self.turn_capacity[turn] = len(self.current_drones)
         return self.turn_capacity[turn] < self.max_link_capacity
 
     def reserve_turn(self, turn: int) -> None:
+        """Reserve one slot in the connection for the given turn."""
         self.turn_capacity[turn] = self.turn_capacity.get(turn, 0) + 1
 
     def enter(self, drone: Drone, turn: int) -> bool:
+        """Register a drone entering the connection."""
+
         if not self.has_capacity(turn):
             return False
 
@@ -147,6 +139,7 @@ class Connection(BaseModel):
         return True
 
     def leave(self, drone: Drone) -> None:
+        """Remove a drone from the connection when it leaves."""
         if drone in self.current_drones:
             self.current_drones.remove(drone)
             drone.current_connection = None

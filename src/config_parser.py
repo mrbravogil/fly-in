@@ -45,6 +45,9 @@ class ConfigParser:
         self.filepath = file_path
 
     def _read_file(self) -> list[str]:
+        """Reads the input files and handles any file errors.
+        Returns every line in the file.
+        """
         if not os.path.exists(self.filepath):
             raise FileNotFoundError(
                 f"Configuration file not found: '{self.filepath}'")
@@ -155,7 +158,7 @@ class ConfigParser:
         return drones
 
     def _parse_hubs(self, value: str) -> Hub:
-        required_values = 'color'
+        """Parse and validate hubs values."""
 
         parts = value.strip().split(maxsplit=1)
         if len(parts) != 2:
@@ -165,8 +168,6 @@ class ConfigParser:
         if not name.replace('_', '').isalnum():
             raise ValueError('hub must have a valid name')
 
-        if 'color=' not in v:
-            raise ValueError(f'hub is missing value: {required_values}')
         if '[' not in v or ']' not in v:
             raise ValueError('hub configuration format error. Try:'
                              'hub_name: name 0 0 [color=color '
@@ -194,6 +195,7 @@ class ConfigParser:
         )
 
     def _validate_hub_coordinates(self, coord: list[str]) -> list[int]:
+        """Parses and validates hub's coordinates."""
         new_cords: list[int] = []
         for c in coord:
             try:
@@ -209,6 +211,7 @@ class ConfigParser:
 
     def _validate_hub_add_values(self,
                                  add_values: list[str]) -> dict[str, str]:
+        """Parses and validates hub's values: color, zone and max_drones."""
         processed_values: dict[str, str] = {}
         valid_keys = ['color', 'zone', 'max_drones']
         valid_colours = ['red', 'green', 'blue', 'orange', 'yellow',
@@ -250,6 +253,7 @@ class ConfigParser:
         return processed_values
 
     def _validate_hubs_names(self, hubs: list[Hub]) -> None:
+        """Validates the list of hubs by checking for duplicates."""
         saved_names: list[str] = []
         for hub in hubs:
             if hub.name in saved_names:
@@ -259,6 +263,7 @@ class ConfigParser:
                 saved_names.append(hub.name)
 
     def _validate_hubs_coords(self, hubs: list[Hub]) -> None:
+        """Validates hubs' coords and checks for any duplicate coordinates."""
         saved_coords: set[tuple[int, int]] = set()
 
         for hub in hubs:
@@ -271,6 +276,9 @@ class ConfigParser:
             saved_coords.add(hub_coord)
 
     def _parse_connection(self, value: str) -> Connection:
+        """Parses and validates connection values:
+        hub_a, hub_b and max_link_capacity.
+        """
         if '[' in value and ']' not in value:
             raise ValueError(f'connections format error: connection: {value}'
                              'Try: connection: maze_a1-maze_a2 or'
@@ -300,6 +308,7 @@ class ConfigParser:
         return Connection(hub_a=c1, hub_b=c2, max_link_capacity=1)
 
     def _validate_connections(self, connections: list[Connection]) -> None:
+        """Validates the list of connections by checking for duplicates."""
         saved_conn: set[tuple[str, str]] = set()
 
         for conn in connections:
