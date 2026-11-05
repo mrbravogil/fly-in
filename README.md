@@ -1,3 +1,5 @@
+*This project has been created as part of the 42 curriculum by mabravo-*
+
 # Fly-in
 
 Fly-in is a drone routing and traffic simulation project inspired by a graph-based pathfinding challenge. The program reads a map definition, builds a graph of zones and connections, schedules multiple drones simultaneously, and prints the movement sequence as a terminal simulation.
@@ -47,7 +49,7 @@ This becomes especially important in the optimized challenge map described in `d
 | `src/models/models.py` | Drone, hub, and connection models |
 | `maps/` | Input maps for easy, medium, hard, and challenger scenarios |
 
-## How to run
+## Installation
 
 Install the project dependencies:
 
@@ -73,7 +75,7 @@ Or choose another available map from the `maps/` folder.
 
 Maps are plain text files with a simple declarative syntax. A typical example looks like this:
 
-```text
+```Input:
 nb_drones: 2
 start_hub: start 0 0 [color=green]
 end_hub: goal 3 0 [color=red]
@@ -83,6 +85,18 @@ connection: start-waypoint1
 connection: waypoint1-waypoint2
 connection: waypoint2-goal
 ```
+
+```Output
+DRONES: 2
+START HUB: start 0, 0
+END HUB: goal 3, 0
+HUBS: 4
+CONNECTIONS: 6
+
+[D1: start - waypoint1] [D2: start - waypoint1] 
+[D1: waypoint1 - waypoint2] [D2: waypoint1 - waypoint2] 
+[D1: waypoint2 - goal] [D2: waypoint2 - goal] 
+ ```
 
 Zone metadata may include:
 

@@ -146,11 +146,8 @@ class ConfigParser:
 
     def _parse_drones(self, value: str) -> int:
         """Parse and validate the nb_drones value."""
-        try:
-            drones = int(value)
-        except ValueError:
-            print(
-                f"nb_drones must be an integer, got: '{value}'")
+
+        drones = int(value)
         if drones <= 0:
             raise ValueError(
                 f"nb_drones must be a positive integer, got: {drones}")
@@ -207,6 +204,11 @@ class ConfigParser:
         if len(new_cords) < 2:
             raise ValueError(f'Hub coordinates are incomplete: {coord}')
 
+        if len(new_cords) > 2:
+            raise ValueError('Too many hub coordinates, only two '
+                             f'values allowed: {coord}'
+                             '\nTry: 0 1')
+
         return new_cords
 
     def _validate_hub_add_values(self,
@@ -241,7 +243,10 @@ class ConfigParser:
             if k == 'max_drones':
                 try:
                     max_value = int(v)
-                    if max_value <= 0:
+                    if max_value <= 0 and not isinstance(max_value, int):
+                        raise ValueError('max_drones must be a number'
+                                         ' higher than 0.')
+                    if not isinstance(max_value, int):
                         raise ValueError('max_drones must be a number'
                                          ' higher than 0.')
                 except (ValueError, Exception) as e:
@@ -371,8 +376,7 @@ class ConfigParser:
             start_hub=start_hub,
             end_hub=end_hub,
             hubs=processed_hubs,
-            connections=processed_connections,
-            output_file=''
+            connections=processed_connections
         )
 
 

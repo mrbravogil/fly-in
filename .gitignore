@@ -5,7 +5,6 @@ data_*/
 .envrc
 .mypy_cache/
 .env
-.atl/
 .vscode/
 docs/
 subject.md
