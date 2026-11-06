@@ -243,7 +243,7 @@ class ConfigParser:
             if k == 'max_drones':
                 try:
                     max_value = int(v)
-                    if max_value <= 0 and not isinstance(max_value, int):
+                    if max_value <= 0:
                         raise ValueError('max_drones must be a number'
                                          ' higher than 0.')
                     if not isinstance(max_value, int):
@@ -300,7 +300,7 @@ class ConfigParser:
                 raise ValueError(f'cannot recognise this key: {k}')
             try:
                 max_capacity = int(v)
-                if max_capacity < 0:
+                if max_capacity <= 0:
                     raise ValueError('max_link_capacity must '
                                      'be a positive number.')
             except (Exception, ValueError) as e:

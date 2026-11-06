@@ -2,7 +2,7 @@
 
 from .pathfinding import PathFinder
 from .models.graph import Graph
-from .models.models import Drone, Hub
+from .models.models import Drone, Hub, Connection
 from .planner import Planner
 
 COLOURS: dict[str, str] = {
@@ -111,6 +111,19 @@ class Fly_in():
         if connection is None:
             return False
 
+        if drone.current_connection is None:
+            key = (connection.capacity_key, turn)
+            reserved = self.reservations.get(key, 0)
+
+            in_transit: int = sum(
+                len(c.current_drones)
+                for c in self.graph.connections
+                if c.capacity_key == connection.capacity_key)
+
+            if (reserved >= connection.max_link_capacity
+                    or in_transit >= connection.max_link_capacity):
+                return False
+
         return drone.can_move(connection, turn) is True
 
     def _record_move(
@@ -140,6 +153,24 @@ class Fly_in():
 
         return turn_print
 
+    def _record_positions(self, drones: list[Drone]) -> str:
+        """Build the terminal output from each drone's current location."""
+        positions: list[str] = []
+        position: str = ''
+        connection: Connection
+        for drone in drones:
+            if drone.current_connection is not None:
+                connection = drone.current_connection
+                position = f'{connection.hub_a}-{connection.hub_b}'
+
+            elif drone.current_hub is not None:
+                position = drone.current_hub.name
+            else:
+                continue
+            positions.append(f'[{drone.id}: {position}]')
+
+        return ' '.join(positions)
+
     def run(self) -> None:
         """Run the simulation until every drone reaches the end hub."""
         turns: int = 0
@@ -156,9 +187,8 @@ class Fly_in():
                                                       turns,
                                                       self.reservations)
 
-            drone_movements = self._execute_schedule(schedule, turns)
-
-            turn_print = self._record_move(drone_movements)
+            self._execute_schedule(schedule, turns)
+            turn_print = self._record_positions(self.graph.drones)
             if turn_print:
                 print(turn_print)
             turns += 1
@@ -167,33 +197,37 @@ class Fly_in():
 
     def _execute_schedule(self,
                           schedule: list[tuple],
-                          turn: int) -> list[tuple[Drone, Hub, Hub]]:
+                          turn: int) -> None:
         """Execute the scheduled moves and record successful ones."""
-        drone_movements: list[tuple[Drone, Hub, Hub]] = []
+    #     drone_movements: list[tuple[Drone, Hub, Hub]] = []
 
-        for action in schedule:
-            drone, next_hub, t = action
+    #     for action in schedule:
+    #         drone, next_hub, t = action
 
-            if self._turn_validation(drone, next_hub, t):
-                if drone.current_hub is None:
-                    continue
-                from_hub: Hub = drone.current_hub
-                drone.path = self.path_finder.reconstruct_path(
-                    drone.current_hub, self.graph, turn, self.reservations
-                )
-                drone.move_next_hub(next_hub, t)
+    #         if not self._turn_validation(drone, next_hub, t):
+    #             continue
+    #         if drone.current_hub is None:
+    #             continue
+                
+    #         from_hub: Hub = drone.current_hub
+    #             drone.path = self.path_finder.reconstruct_path(
+    #                 drone.current_hub, self.graph, turn, self.reservations
+    #             )
+    #             drone.move_next_hub(next_hub, t)
 
-                if drone.current_hub is None:
-                    continue
-                if drone.current_hub.name != next_hub.name:
-                    continue
+    #             if drone.current_hub is None:
+    #                 continue
+    #             if drone.current_hub.name != next_hub.name:
+    #                 continue
 
-                drone_movements.append((drone, from_hub, next_hub))
-                self._reserve_capacity(from_hub, next_hub, turn + 1)
+    #             drone_movements.append((drone, from_hub, next_hub))
+    #             self._reserve_capacity(from_hub, next_hub, turn + 1)
 
-        return drone_movements
+    #     return drone_movements
 
-    def _reserve_capacity(self, from_hub: Hub, hub: Hub, turn: int) -> None:
+    def _reserve_capacity(self,
+                          from_hub: Hub, hub: Hub,
+                          turn: int) -> None:
         """Reserve the destination hub and connection for this turn."""
 
         connection = self.graph.find_connection(from_hub.name,
@@ -205,7 +239,6 @@ class Fly_in():
         self.reservations[key_hub] = self.reservations.get(key_hub, 0) + 1
         hub.reserve_turn(turn)
 
-        key_conn = (connection.id, turn)
+        key_conn = (connection.capacity_key, turn)
         self.reservations[key_conn] = self.reservations.get(key_conn, 0) + 1
         connection.reserve_turn(turn)
-

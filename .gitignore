@@ -8,4 +8,5 @@ data_*/
 .vscode/
 docs/*
 !docs/analisis_max_link_capacity.md
+!docs/representacion_posicion_drones.md
 subject.md

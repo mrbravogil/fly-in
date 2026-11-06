@@ -1,6 +1,6 @@
 run:
 	uv run python -m src \
-		--map maps/easy/01_linear_path.txt
+		--map maps/hard/01_maze_nightmare.txt
 
 install:
 	uv sync --no-install-project

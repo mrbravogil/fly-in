@@ -20,29 +20,29 @@ class Planner():
              reservations: dict[tuple, int]) -> list[tuple]:
         """Create the next move schedule for all drones."""
 
-        schedule: list[tuple] = []
-        groups: list[list[Drone]] = self.group_drones(drones,
-                                                      turn, reservations)
-        original_hubs = {hub.name: hub for hub in self.graph.hubs}
+        # schedule: list[tuple] = []
+        # groups: list[list[Drone]] = self.group_drones(drones,
+        #                                               turn, reservations)
+        # original_hubs = {hub.name: hub for hub in self.graph.hubs}
 
-        for group in groups:
-            for drone in group:
-                routes: list[list[Hub]] = self.get_alt_routes(
-                    drone, turn, reservations
-                )
+        # for group in groups:
+        #     for drone in group:
+        #         routes: list[list[Hub]] = self.get_alt_routes(
+        #             drone, turn, reservations
+        #         )
 
-                best_route: list[Hub] = self.select_best_route(
-                    routes, turn, reservations)
+        #         best_route: list[Hub] = self.select_best_route(
+        #             routes, turn, reservations)
 
-                if best_route is not None:
-                    next_hub = original_hubs[best_route[1].name]
+        #         if best_route is not None:
+        #             next_hub = original_hubs[best_route[1].name]
 
-                    if self.has_capacity(next_hub, turn, reservations):
-                        schedule.append((drone, next_hub, turn + 1))
-                    else:
-                        continue
+        #             if self.has_capacity(next_hub, turn, reservations):
+        #                 schedule.append((drone, next_hub, turn + 1))
+        #             else:
+        #                 continue
 
-        return schedule
+        # return schedule
 
     def group_drones(self, drones: list[Drone],
                      turn: int, reservations: dict[tuple, int]
@@ -139,7 +139,8 @@ class Planner():
             return False
 
         if connection:
-            conn_occupation = reservations.get((connection.id, turn), 0)
+            conn_occupation = reservations.get(
+                (connection.capacity_key, turn), 0)
             if conn_occupation >= connection.max_link_capacity:
                 return False
 

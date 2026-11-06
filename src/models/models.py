@@ -83,7 +83,7 @@ class Hub(BaseModel):
     colour: str = 'white'
     zone: str = 'normal'
     drones: list[Drone] = Field(default_factory=list)
-    max_drones: int = 9999
+    max_drones: int = 1
     turn_capacity: dict[int, int] = Field(default_factory=dict)
     connections: list['Hub'] = Field(default_factory=list)
     weight: float = 0.0
@@ -112,7 +112,14 @@ class Connection(BaseModel):
     hub_b: str
     current_drones: list[Drone] = []
     turn_capacity: dict[int, int] = Field(default_factory=dict)
-    max_link_capacity: int = 9999
+    max_link_capacity: int = 1
+
+    @property
+    def capacity_key(self) -> tuple[str, str]:
+        """Return the undirected identity of this connection."""
+        if self.hub_a < self.hub_b:
+            return self.hub_a, self.hub_b
+        return self.hub_b, self.hub_a
 
     def has_capacity(self, turn: int) -> bool:
         """Return True when the connection still has room for this turn."""
