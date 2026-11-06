@@ -116,8 +116,11 @@ class Connection(BaseModel):
 
     def has_capacity(self, turn: int) -> bool:
         """Return True when the connection still has room for this turn."""
-        self.turn_capacity[turn] = len(self.current_drones)
-        return self.turn_capacity[turn] < self.max_link_capacity
+        # self.turn_capacity[turn] = len(self.current_drones)
+        # return self.turn_capacity[turn] < self.max_link_capacity
+
+        return (self.turn_capacity.get(turn, 0) < self.max_link_capacity
+                and len(self.current_drones) < self.max_link_capacity)
 
     def reserve_turn(self, turn: int) -> None:
         """Reserve one slot in the connection for the given turn."""

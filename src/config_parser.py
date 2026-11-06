@@ -159,11 +159,12 @@ class ConfigParser:
 
         parts = value.strip().split(maxsplit=1)
         if len(parts) != 2:
-            raise ValueError('hub must have a name and coordinates')
+            raise ValueError('hub must have name and coordinates')
 
         name, v = parts
         if not name.replace('_', '').isalnum():
-            raise ValueError('hub must have a valid name')
+            raise ValueError('hub must have a valid name. '
+                             'Values allowed: alphanumeric and "_".')
 
         if '[' not in v or ']' not in v:
             raise ValueError('hub configuration format error. Try:'
@@ -195,19 +196,18 @@ class ConfigParser:
         """Parses and validates hub's coordinates."""
         new_cords: list[int] = []
         for c in coord:
+            if c[0] == '-' and c[1] == '0':
+                raise ValueError(f'Wrong hub coordinates: {c}.')
             try:
                 coordinate = int(c)
             except (Exception, ValueError) as e:
                 raise ValueError(f'Invalid coordinate: {c}') from e
             new_cords.append(coordinate)
 
-        if len(new_cords) < 2:
-            raise ValueError(f'Hub coordinates are incomplete: {coord}')
-
-        if len(new_cords) > 2:
-            raise ValueError('Too many hub coordinates, only two '
-                             f'values allowed: {coord}'
-                             '\nTry: 0 1')
+        if len(new_cords) != 2:
+            raise ValueError(f'Wrong hub coordinates: {coord}.'
+                             '\nOnly two values allowed. '
+                             'Try: 0 1')
 
         return new_cords
 

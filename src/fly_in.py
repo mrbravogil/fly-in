@@ -189,16 +189,14 @@ class Fly_in():
                     continue
 
                 drone_movements.append((drone, from_hub, next_hub))
-                self._reserve_capacity(drone, next_hub, turn + 1)
+                self._reserve_capacity(from_hub, next_hub, turn + 1)
 
         return drone_movements
 
-    def _reserve_capacity(self, drone: Drone, hub: Hub, turn: int) -> None:
+    def _reserve_capacity(self, from_hub: Hub, hub: Hub, turn: int) -> None:
         """Reserve the destination hub and connection for this turn."""
-        if drone.current_hub is None:
-            return
 
-        connection = self.graph.find_connection(drone.current_hub.name,
+        connection = self.graph.find_connection(from_hub.name,
                                                 hub.name)
         if connection is None:
             return
@@ -207,9 +205,7 @@ class Fly_in():
         self.reservations[key_hub] = self.reservations.get(key_hub, 0) + 1
         hub.reserve_turn(turn)
 
-        key_conn = (hub.name, turn)
+        key_conn = (connection.id, turn)
         self.reservations[key_conn] = self.reservations.get(key_conn, 0) + 1
         connection.reserve_turn(turn)
 
-        drone.reserved_turn = turn
-        drone.reserved_hub = hub.name

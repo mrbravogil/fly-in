@@ -6,5 +6,6 @@ data_*/
 .mypy_cache/
 .env
 .vscode/
-docs/
+docs/*
+!docs/analisis_max_link_capacity.md
 subject.md
