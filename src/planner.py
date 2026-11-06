@@ -41,16 +41,15 @@ class Planner():
                     ))
                     continue
 
-                routes: list[list[Hub]] = self.get_alt_routes(
-                    drone, turn, reservations
+                if drone.current_hub is None:
+                    continue
+
+                route: list[Hub] = self.path_finder.reconstruct_path(
+                    drone.current_hub, self.graph, turn, reservations
                 )
 
-                best_route: list[Hub] = self.select_best_route(
-                    routes, turn, reservations)
-
-                if best_route is not None:
-                    next_hub = original_hubs[best_route[1].name]
-
+                if len(route) >= 2:
+                    next_hub = original_hubs[route[1].name]
                     if self.has_capacity(next_hub, turn, reservations):
                         schedule.append((drone, next_hub, turn + 1))
                     else:
