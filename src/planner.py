@@ -1,5 +1,5 @@
 from .models.graph import Graph
-from .models.models import Drone, Hub
+from .models.models import Drone, Hub, Connection
 from .pathfinding import PathFinder
 
 
@@ -20,29 +20,43 @@ class Planner():
              reservations: dict[tuple, int]) -> list[tuple]:
         """Create the next move schedule for all drones."""
 
-        # schedule: list[tuple] = []
-        # groups: list[list[Drone]] = self.group_drones(drones,
-        #                                               turn, reservations)
-        # original_hubs = {hub.name: hub for hub in self.graph.hubs}
+        schedule: list[tuple] = []
+        groups: list[list[Drone]] = self.group_drones(drones,
+                                                      turn, reservations)
+        original_hubs = {hub.name: hub for hub in self.graph.hubs}
 
-        # for group in groups:
-        #     for drone in group:
-        #         routes: list[list[Hub]] = self.get_alt_routes(
-        #             drone, turn, reservations
-        #         )
+        for group in groups:
+            for drone in group:
+                if drone.current_connection is not None:
+                    if drone.current_hub is None:
+                        continue
+                    connection: Connection = drone.current_connection
+                    next_hub_name: str = (
+                        connection.hub_b
+                        if connection.hub_a == drone.current_hub.name
+                        else connection.hub_a
+                    )
+                    schedule.append((
+                        drone, original_hubs[next_hub_name], turn + 1
+                    ))
+                    continue
 
-        #         best_route: list[Hub] = self.select_best_route(
-        #             routes, turn, reservations)
+                routes: list[list[Hub]] = self.get_alt_routes(
+                    drone, turn, reservations
+                )
 
-        #         if best_route is not None:
-        #             next_hub = original_hubs[best_route[1].name]
+                best_route: list[Hub] = self.select_best_route(
+                    routes, turn, reservations)
 
-        #             if self.has_capacity(next_hub, turn, reservations):
-        #                 schedule.append((drone, next_hub, turn + 1))
-        #             else:
-        #                 continue
+                if best_route is not None:
+                    next_hub = original_hubs[best_route[1].name]
 
-        # return schedule
+                    if self.has_capacity(next_hub, turn, reservations):
+                        schedule.append((drone, next_hub, turn + 1))
+                    else:
+                        continue
+
+        return schedule
 
     def group_drones(self, drones: list[Drone],
                      turn: int, reservations: dict[tuple, int]

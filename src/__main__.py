@@ -32,7 +32,7 @@ if __name__ == '__main__':
         end = graph.end_hub
         print(f'END HUB: {end.name} {end.x}, {end.y}')
         print(f'HUBS: {len(graph.hubs)}')
-        print(f'CONNECTIONS: {len(graph.connections)}\n')
+        print(f'CONNECTIONS: {int(len(graph.connections)/2)}\n')
 
         fly_in = Fly_in(graph)
         fly_in.run()

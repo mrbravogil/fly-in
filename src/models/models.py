@@ -123,9 +123,6 @@ class Connection(BaseModel):
 
     def has_capacity(self, turn: int) -> bool:
         """Return True when the connection still has room for this turn."""
-        # self.turn_capacity[turn] = len(self.current_drones)
-        # return self.turn_capacity[turn] < self.max_link_capacity
-
         return (self.turn_capacity.get(turn, 0) < self.max_link_capacity
                 and len(self.current_drones) < self.max_link_capacity)
 
@@ -158,7 +155,7 @@ class Connection(BaseModel):
 """model_rebuild() tells Pydantic to resolve forward references
 in type annotations after all classes are defined.
 
-Replaces type name written as text with the actual class
+Replaces type name written as text with the actual class.
 """
 Drone.model_rebuild()
 Hub.model_rebuild()
