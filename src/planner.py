@@ -90,45 +90,6 @@ class Planner():
                                                   turn, reservations)
         return len(route)
 
-    def get_alt_routes(self,
-                       drone: Drone,
-                       turn: int,
-                       reservations: dict[tuple, int]) -> list[list[Hub]]:
-        """Return alternative routes for the drone."""
-
-        if drone.current_hub is None:
-            return []
-
-        routes: list[list[Hub]] = self.path_finder.get_alternative_routes(
-            drone.current_hub, self.graph, turn, reservations
-        )
-
-        return routes
-
-    def select_best_route(self, routes: list[list[Hub]], turn: int,
-                          reservations: dict[tuple, int]) -> list[Hub]:
-        """Choose the least congested valid route."""
-
-        best_route: list[Hub] = []
-        best_score = float('inf')
-
-        for route in routes:
-            if len(route) < 2:
-                continue
-
-            score = 0.0
-            for t in range(1, 6):
-                for hub in route[1:4]:
-                    occupation: int = reservations.get((hub.name, turn+t), 0)
-                    congestion: float = occupation / hub.max_drones
-                    score += congestion
-
-            if score < best_score:
-                best_score = score
-                best_route = route
-
-        return best_route
-
     def has_capacity(self, hub: Hub, turn: int,
                      reservations: dict[tuple, int]) -> bool:
         """Return whether the hub has free capacity this turn."""
