@@ -239,9 +239,12 @@ class ConfigParser:
             v: str = ''
             try:
                 k, v = value.split('=', 1)
+                if not v:
+                    raise ValueError(' ')
 
             except (Exception, ValueError):
-                raise ValueError('hub configuration format error. Try: '
+                raise ValueError('hub configuration format error '
+                                 f'"{add_values}".\nTry: '
                                  '[color=color '
                                  'zone=zone max_drones=2]')
             if k and v:
@@ -254,7 +257,8 @@ class ConfigParser:
                                      f'Valid keys: {valid_keys}')
                 if k == 'color':
                     if not v.isalpha():
-                        raise ValueError('you must provide a valid color '
+                        raise ValueError(f' "{v}". You must provide a valid '
+                                         'color '
                                          f'name. Example: {valid_colours}')
 
                 if k == 'zone':

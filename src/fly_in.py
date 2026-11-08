@@ -113,6 +113,17 @@ class Fly_in():
 
         return drone.can_move(connection, turn) is True
 
+    def _drone_current_position(self,
+                                drone: Drone) -> tuple[str | None, str | None]:
+        """Return the position of the given drone."""
+        hub: Hub = (drone.current_hub
+                    if drone.current_hub is not None else None)
+        connection = (drone.current_connection.id
+                      if drone.current_connection is not None
+                      else None)
+
+        return hub, connection
+
     def _first_turn_log(self, drones: list[Drone]) -> str:
         """Build the coloured output from each drone's start location."""
         start_log: list[str] = []
@@ -160,7 +171,7 @@ class Fly_in():
     def run(self) -> None:
         """Run the simulation until every drone reaches the end hub."""
         turns: int = 0
-        max_turns: int = 1000
+        max_turns: int = 10000
 
         while self._all_drones_finished() is False:
             if turns >= max_turns:
@@ -174,9 +185,18 @@ class Fly_in():
                 schedule: list[tuple] = self.planner.plan(self.graph.drones,
                                                           turns,
                                                           self.reservations)
-
+                previous_positions: dict[int, tuple] = {
+                    drone.id: self._drone_current_position(drone)
+                    for drone in self.graph.drones
+                }
                 self._execute_schedule(schedule, turns)
-                turn_print = self._record_positions(self.graph.drones)
+                moved_drones: list[Drone] = [
+                    drone
+                    for drone in self.graph.drones
+                    if self._drone_current_position(drone)
+                    != previous_positions[drone.id]
+                ]
+                turn_print = self._record_positions(moved_drones)
                 if turn_print:
                     print(f'{turn_print}')
             turns += 1

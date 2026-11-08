@@ -37,7 +37,7 @@ class Planner():
                         else connection.hub_a
                     )
                     schedule.append((
-                        drone, original_hubs[next_hub_name], turn + 1
+                        drone, original_hubs[next_hub_name], turn
                     ))
                     continue
 
@@ -51,7 +51,7 @@ class Planner():
                 if len(route) >= 2:
                     next_hub = original_hubs[route[1].name]
                     if self.has_capacity(next_hub, turn, reservations):
-                        schedule.append((drone, next_hub, turn + 1))
+                        schedule.append((drone, next_hub, turn))
                     else:
                         continue
 

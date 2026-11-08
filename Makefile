@@ -1,6 +1,6 @@
 run:
 	uv run python -m src \
-		--map maps/hard/03_ultimate_challenge.txt
+		--map maps/challenger/01_the_impossible_dream.txt
 
 install:
 	uv sync --no-install-project
