@@ -25,7 +25,7 @@ The solution combines:
 - planner logic for turn-by-turn movement scheduling
 - terminal output for visual trace of the simulation
 
-## Main Challenge
+### Planner
 
 The challenge is not simply shortest-path finding. The real difficulty is planning traffic under constraints:
 
@@ -36,7 +36,7 @@ The challenge is not simply shortest-path finding. The real difficulty is planni
 
 This becomes especially important in the optimized challenge map described in `docs/impossible_dream_optimization.md`, where the target is to push the solution toward a much lower total turn count.
 
-## Project structure
+### Project structure
 
 | Path | Purpose |
 | --- | --- |
@@ -49,7 +49,7 @@ This becomes especially important in the optimized challenge map described in `d
 | `src/models/models.py` | Drone, hub, and connection models |
 | `maps/` | Input maps for easy, medium, hard, and challenger scenarios |
 
-## Installation
+## Instructionss
 
 Install the project dependencies:
 
@@ -87,15 +87,21 @@ connection: waypoint2-goal
 ```
 
 ```Output
+
 DRONES: 2
 START HUB: start 0, 0
 END HUB: goal 3, 0
 HUBS: 4
-CONNECTIONS: 6
+CONNECTIONS: 3
 
-[D1: start - waypoint1] [D2: start - waypoint1] 
-[D1: waypoint1 - waypoint2] [D2: waypoint1 - waypoint2] 
-[D1: waypoint2 - goal] [D2: waypoint2 - goal] 
+[D1: start] [D2: start]
+[D1: waypoint1]
+[D1: waypoint2] [D2: waypoint1]
+[D1: goal] [D2: waypoint2]
+[D2: goal]
+
+TURNS: 4
+
  ```
 
 Zone metadata may include:
@@ -133,3 +139,12 @@ This combination changes the behavior from local, turn-by-turn greediness to a m
 ## Summary
 
 Fly-in is a small but interesting routing challenge: it turns a graph and capacity-constrained movement problem into a simulation where multiple drones compete for space, timing, and route choices. The implementation already covers the basic mechanics of parsing, graph building, planning, and movement, and it provides a useful base for optimizing the hardest challenge maps.
+
+## Resources
+
+- [Python documentation](https://docs.python.org/3/) - Python language and standard library reference.
+- [Pydantic documentation](https://docs.pydantic.dev/latest/) - data models and validation.
+- [Dijkstra's algorithm](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm) - background on weighted shortest-path search.
+- [uv documentation](https://docs.astral.sh/uv/) - dependency management and running the project.
+
+AI was used to help analyze and optimize the routing and scheduling algorithms.
