@@ -27,7 +27,7 @@ class Planner():
 
         for group in groups:
             for drone in group:
-                if drone.current_connection is not None:
+                if drone.current_connection:
                     if drone.current_hub is None:
                         continue
                     connection: Connection = drone.current_connection

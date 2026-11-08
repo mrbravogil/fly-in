@@ -50,7 +50,7 @@ class Graph(BaseModel):
             if v.zone == 'normal':
                 v.weight = 1
             if v.zone == 'priority':
-                v.weight = 1
+                v.weight = 0.5
             if v.zone == 'restricted':
                 v.weight = 2
             if v.zone == 'blocked':
@@ -76,8 +76,11 @@ class Graph(BaseModel):
 
         for c in self.connections:
             a, b = c.hub_a, c.hub_b
-            if a not in hub_list or b not in hub_list:
-                raise ValueError(f'connection error: {a} - {b} is not '
+            if a not in hub_list:
+                raise ValueError(f'connection error: "{a}" is not '
+                                 'a registered hub')
+            if b not in hub_list:
+                raise ValueError(f'connection error: "{b}" is not '
                                  'a registered hub')
 
             a_hub: Hub = self._find_hub(a)
@@ -116,6 +119,7 @@ class Graph(BaseModel):
         while i <= self.n_drones:
             d_name = f'D{str(i)}'
             drone = Drone(id=d_name, current_hub=self.start_hub)
+            self.start_hub.drones.append(drone)
             drones.append(drone)
             i += 1
 

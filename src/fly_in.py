@@ -21,6 +21,7 @@ COLOURS: dict[str, str] = {
     'gold': '\x1b[38;5;178m',
     'white': '\x1b[97m',
     'black': '\n\x1b[40m',
+    'rainbow': '0'
 }
 
 RAINBOW: list[str] = [
@@ -57,13 +58,13 @@ class Fly_in():
         self.reservations = {}
         self._arrived: set = set()
 
-    def _assign_path(self, drone: Drone, current_hub: Hub,
-                     turn: int, reservations: dict[tuple, int]) -> None:
-        """Assign the drone's current route using the graph state."""
-        if drone.current_hub:
-            drone.path = self.path_finder.reconstruct_path(
-                    drone.current_hub, self.graph, turn, reservations
-                )
+    # def _assign_path(self, drone: Drone, current_hub: Hub,
+    #                  turn: int, reservations: dict[tuple, int]) -> None:
+    #     """Assign the drone's current route using the graph state."""
+    #     if drone.current_hub:
+    #         drone.path = self.path_finder.reconstruct_path(
+    #                 drone.current_hub, self.graph, turn, reservations
+    #             )
 
     def _all_drones_finished(self) -> bool:
         """Return True when every drone has reached the end hub."""
@@ -73,24 +74,9 @@ class Fly_in():
 
         return True
 
-    def _assign_colour_code(self, from_hub: Hub,
-                            to_hub: Hub, drone: Drone) -> str:
-        """Return the ANSI colour code used for the movement print."""
-        colour: str = ''
-        if to_hub.is_end is True:
-            colour = 'red'
-        elif from_hub:
-            if from_hub.is_start is True:
-                colour = 'green'
-            else:
-                colour = from_hub.colour
-        code: str = ''
-        if colour in COLOURS:
-            code = COLOURS[colour]
-        else:
-            code = COLOURS['white']
-
-        return code
+    def _position_colour(self, hub: Hub | None) -> str:
+        """Return the ANSI colour code for a drone located at or toward hub."""
+        return COLOURS.get(hub.colour, COLOURS['white'])
 
     def _rainbow_text(self, text: str) -> str:
         """Return the text with a rainbow-style ANSI colour cycle."""
@@ -127,33 +113,6 @@ class Fly_in():
 
         return drone.can_move(connection, turn) is True
 
-    def _record_move(
-        self,
-        drone_movements: list[tuple[Drone, Hub, Hub]],
-    ) -> str:
-        """Build the terminal output for all moves in a turn."""
-        turn_print: str = ''
-
-        for drone, from_hub, to_hub in drone_movements:
-            connection = self.graph.find_connection(
-                from_hub.name,
-                to_hub.name
-            )
-            if connection is None:
-                continue
-
-            code: str = self._assign_colour_code(from_hub, to_hub, drone)
-            if to_hub.is_end is True and to_hub.name == 'impossible_goal':
-                label = f'[{drone.id}: {from_hub.name} - {to_hub.name}]'
-                turn_print += self._rainbow_text(label)
-            else:
-                turn_print += (
-                                f'{code}[{drone.id}: '
-                                f'{from_hub.name} - {to_hub.name}] \x1b[0m'
-                )
-
-        return turn_print
-
     def _first_turn_log(self, drones: list[Drone]) -> str:
         """Build the coloured output from each drone's start location."""
         start_log: list[str] = []
@@ -189,22 +148,19 @@ class Fly_in():
                 hub = drone.current_hub
             else:
                 continue
-            if position == 'impossible_goal':
+            if position and hub.colour == 'rainbow':
                 label = f'[{drone.id}: {position}]'
                 positions.append(self._rainbow_text(label))
-            code = self._position_colour(hub)
-            positions.append(f'{code}[{drone.id}: {position}]\x1b[0m')
+            else:
+                code = self._position_colour(hub)
+                positions.append(f'{code}[{drone.id}: {position}]\x1b[0m')
 
         return ' '.join(positions)
-
-    def _position_colour(self, hub: Hub | None) -> str:
-        """Return the ANSI colour code for a drone located at or toward hub."""
-        return COLOURS.get(hub.colour, COLOURS['white'])
 
     def run(self) -> None:
         """Run the simulation until every drone reaches the end hub."""
         turns: int = 0
-        max_turns: int = 10000
+        max_turns: int = 1000
 
         while self._all_drones_finished() is False:
             if turns >= max_turns:
@@ -225,7 +181,7 @@ class Fly_in():
                     print(f'{turn_print}')
             turns += 1
 
-        print(f'\n\x1b[40mTURNS: {turns}\x1b[0m\n')
+        print(f'\n\x1b[40mTURNS: {turns-1}\x1b[0m\n')
 
     def _execute_schedule(self,
                           schedule: list[tuple],
@@ -234,7 +190,7 @@ class Fly_in():
         for action in schedule:
             drone, next_hub, t = action
             from_hub: Hub = drone.current_hub
-            if drone.current_hub is not None:
+            if drone.current_hub:
                 drone.path = [from_hub, next_hub]
             if not self._turn_validation(drone, next_hub, t):
                 continue

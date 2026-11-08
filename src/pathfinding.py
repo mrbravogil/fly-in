@@ -20,7 +20,7 @@ class PathFinder():
                    graph: Graph,
                    turn: int,
                    reservations: dict
-                   ) -> tuple[dict[str, Any], dict[str, Any]]:
+                   ) -> dict[str, Any]:
         """Finds the shortest and most cost-effective path from the
         drone's current hub to the end hub."""
 
@@ -64,7 +64,7 @@ class PathFinder():
                     distances[v.name] = alt
                     prev[v.name] = u.name
 
-        return distances, prev
+        return prev
 
     def estimate_congestion(self, hub: Hub, turn: int,
                             reservations: dict) -> float:
@@ -99,7 +99,7 @@ class PathFinder():
                          turn: int,
                          reservations: dict[tuple, int]) -> list[Hub]:
         """Reconstruct the route from the given current hub to the end hub."""
-        _, prev = self.build_path(start, graph, turn, reservations)
+        prev = self.build_path(start, graph, turn, reservations)
         end = graph.end_hub if graph.end_hub else None
         if not end:
             raise ValueError("No end hub in graph")

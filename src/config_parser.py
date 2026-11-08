@@ -186,6 +186,12 @@ class ConfigParser:
                 raise ValueError('hub configuration format error. Try: '
                                  'hub_name: name 0 0 [color=color '
                                  'zone=zone max_drones=2]')
+            _, w = e_v.split(']')
+            if w:
+                raise ValueError('hub configuration format error. '
+                                 f'Unknown key "{w}". \nTry: '
+                                 'hub_name: name 0 0 [color=color '
+                                 'zone=zone max_drones=2]')
             else:
                 add_values = e_v.strip(']').split()
                 p_values = self._validate_hub_add_values(
@@ -227,7 +233,7 @@ class ConfigParser:
         valid_keys = ['color', 'zone', 'max_drones']
         valid_colours = ['red', 'green', 'blue', 'orange', 'yellow',
                          'black', 'white', 'maroon', 'darkred', 'cyan',
-                         'gold', 'purple']
+                         'gold', 'purple', 'rainbow']
         for value in add_values:
             k: str = ''
             v: str = ''
@@ -316,6 +322,13 @@ class ConfigParser:
             raw = value.strip()
             c1_c2, c3 = raw.split('[', 1)
             c1, c2 = c1_c2.strip().split('-', 1)
+            _, w = c3.split(']')
+            if w:
+                raise ValueError('connection configuration format error. '
+                                 f'Unknown key "{w}". \nTry: '
+                                 'connection: hub_a-hub_b '
+                                 '[max_link_capacity=2]')
+
             c3 = c3.strip().rstrip(']')
             k, v = c3.strip().split('=', 1)
             if k != 'max_link_capacity':
@@ -332,6 +345,12 @@ class ConfigParser:
                               max_link_capacity=max_capacity)
 
         c1, c2 = value.strip().split('-')
+        if ' ' in c1 or ' ' in c2:
+            raise ValueError('connection configuration format error. '
+                             f'Unknown key "{value}". \nTry: '
+                             'connection: hub_a-hub_b '
+                             '[max_link_capacity=2]')
+
         return Connection(hub_a=c1, hub_b=c2, max_link_capacity=1)
 
     def _validate_connections(self, connections: list[Connection]) -> None:

@@ -46,7 +46,7 @@ if __name__ == '__main__':
         sys.exit(1)
     except ValidationError as e:
         print("\nValidation error:")
-        print(e.errors())
+        print(e.errors()[0]['msg'])
         sys.exit(1)
     except Exception as e:
         print(f"\nAn unexpected error ocurred: {str(e)}")
