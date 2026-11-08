@@ -199,12 +199,6 @@ class Fly_in():
 
     def _position_colour(self, hub: Hub | None) -> str:
         """Return the ANSI colour code for a drone located at or toward hub."""
-        if hub is None:
-            return COLOURS['white']
-        if hub.is_end:
-            return COLOURS['red']
-        if hub.is_start:
-            return COLOURS['green']
         return COLOURS.get(hub.colour, COLOURS['white'])
 
     def run(self) -> None:

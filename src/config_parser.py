@@ -87,6 +87,9 @@ class ConfigParser:
         """
 
         config: dict[str, Any] = {}
+        allowed_keys = ['nb_drones',
+                        'start_hub', 'end_hub',
+                        'hub', 'connection']
         repeat_keys = ['hub', 'connection']
         config['hubs'] = []
         config['connections'] = []
@@ -111,6 +114,8 @@ class ConfigParser:
             if not value:
                 raise ValueError(
                     f"Empty value for key '{key}' in configuration file.")
+            if key not in allowed_keys:
+                raise ValueError(f"unknown key '{key}'. Try: {allowed_keys}")
 
             if key == 'hub':
                 config['hubs'].append(value)
@@ -120,7 +125,7 @@ class ConfigParser:
             if key in config and key not in repeat_keys:
                 raise ValueError(
                     f"Duplicate key '{key}' in configuration file.")
-            if key not in repeat_keys:
+            if key not in repeat_keys and key in allowed_keys:
                 config[key] = value
 
         return config
@@ -166,30 +171,34 @@ class ConfigParser:
             raise ValueError('hub must have a valid name. '
                              'Values allowed: alphanumeric and "_".')
 
-        if '[' not in v or ']' not in v:
-            raise ValueError('hub configuration format error. Try:'
-                             'hub_name: name 0 0 [color=color '
-                             'zone=zone max_drones=2]')
+        coordinates: list[int] = []
+        add_values: list[str] = []
+        p_values: dict[str, str] = {}
 
-        c, e_v = v.split('[', 1)
-        coordinates: list[int] = self._validate_hub_coordinates(
-            [coord for coord in c.split() if coord])
-
-        add_values: list[str] = e_v.strip(']').split()
-        if not add_values:
-            raise ValueError('hub must have at least one additional'
-                             ' values like "color"')
-        p_values: dict[str, str] = self._validate_hub_add_values(
-            add_values)
+        if '[' not in v and ']' not in v:
+            coordinates = self._validate_hub_coordinates(
+                        [coord for coord in v.split() if coord])
+        elif '[' in v:
+            c, e_v = v.split('[', 1)
+            coordinates = self._validate_hub_coordinates(
+                            [coord for coord in c.split() if coord])
+            if ']' not in e_v:
+                raise ValueError('hub configuration format error. Try: '
+                                 'hub_name: name 0 0 [color=color '
+                                 'zone=zone max_drones=2]')
+            else:
+                add_values = e_v.strip(']').split()
+                p_values = self._validate_hub_add_values(
+                    add_values)
 
         return Hub(
             name=name,
             x=coordinates[0],
             y=coordinates[1],
-            colour=p_values['color'],
+            colour=p_values.get('color', 'white'),
             zone=p_values.get('zone', 'normal'),
             max_drones=(int(p_values['max_drones'])
-                        if p_values.get('max_drones') else 9999),
+                        if p_values.get('max_drones') else 1),
         )
 
     def _validate_hub_coordinates(self, coord: list[str]) -> list[int]:
@@ -220,40 +229,53 @@ class ConfigParser:
                          'black', 'white', 'maroon', 'darkred', 'cyan',
                          'gold', 'purple']
         for value in add_values:
-            k, v = value.split('=', 1)
-            k = k.strip()
-            v = v.strip()
+            k: str = ''
+            v: str = ''
+            try:
+                k, v = value.split('=', 1)
 
-            if k not in valid_keys:
-                raise ValueError(f'provided an invalid value: {k}. '
-                                 f'Valid keys: {valid_keys}')
-            if k == 'color':
-                if not v.isalpha():
-                    raise ValueError('you must provide a valid color name. '
-                                     f'Example: {valid_colours}')
+            except (Exception, ValueError):
+                raise ValueError('hub configuration format error. Try: '
+                                 '[color=color '
+                                 'zone=zone max_drones=2]')
+            if k and v:
 
-            if k == 'zone':
-                if not v.isalpha():
-                    raise ValueError('you must provide a valid zone name: '
-                                     'priority, restricted, normal, blocked.')
-                if v not in {'restricted', 'priority', 'normal', 'blocked'}:
-                    raise ValueError('you must provide a valid zone name: '
-                                     'priority, restricted, normal, blocked.')
+                k = k.strip()
+                v = v.strip()
 
-            if k == 'max_drones':
-                try:
-                    max_value = int(v)
-                    if max_value <= 0:
-                        raise ValueError('max_drones must be a number'
-                                         ' higher than 0.')
-                    if not isinstance(max_value, int):
-                        raise ValueError('max_drones must be a number'
-                                         ' higher than 0.')
-                except (ValueError, Exception) as e:
-                    raise ValueError('max_drones must be a valid positive '
-                                     'number.') from e
+                if k not in valid_keys:
+                    raise ValueError(f'provided an invalid value: {k}. '
+                                     f'Valid keys: {valid_keys}')
+                if k == 'color':
+                    if not v.isalpha():
+                        raise ValueError('you must provide a valid color '
+                                         f'name. Example: {valid_colours}')
 
-            processed_values[k] = v
+                if k == 'zone':
+                    if not v.isalpha():
+                        raise ValueError('you must provide a valid zone name: '
+                                         'priority, restricted, normal, '
+                                         'blocked.')
+                    if v not in {'restricted', 'priority',
+                                 'normal', 'blocked'}:
+                        raise ValueError('you must provide a valid zone name: '
+                                         'priority, restricted, normal, '
+                                         'blocked.')
+
+                if k == 'max_drones':
+                    try:
+                        max_value = int(v)
+                        if max_value <= 0:
+                            raise ValueError('max_drones must be a number'
+                                             ' higher than 0.')
+                        if not isinstance(max_value, int):
+                            raise ValueError('max_drones must be a number'
+                                             ' higher than 0.')
+                    except (ValueError, Exception) as e:
+                        raise ValueError('max_drones must be a valid positive '
+                                         'number.') from e
+
+                processed_values[k] = v
 
         return processed_values
 
@@ -383,7 +405,7 @@ class ConfigParser:
 def parse_config(file_path: str) -> Graph:
     """Convenience function to parse a configuration file.
 
-    Returns parsed and validated Config instance.
+    Returns parsed and validated Graph instance.
     """
 
     parser = ConfigParser(file_path)
