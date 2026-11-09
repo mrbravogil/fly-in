@@ -75,6 +75,12 @@ class ConfigParser:
                 f"Configuration file '{self.filepath}' "
                 f"is empty or contains only comments.")
 
+        if 'nb_drones:' not in processed_lines[0]:
+            raise ValueError(
+                f"Configuration file error '{processed_lines[0]}'."
+                "First must define 'nb_drones'."
+            )
+
         return processed_lines
 
     def _parse_lines(self, lines: list[str]) -> dict[str, str]:
@@ -157,6 +163,11 @@ class ConfigParser:
             raise ValueError(
                 f"nb_drones must be a positive integer, got: {drones}")
 
+        if drones > 9999:
+            raise ValueError(
+                "nb_drones must be a positive integer, lower than "
+                f"9.999, got: {drones}")
+
         return drones
 
     def _parse_hubs(self, value: str) -> Hub:
@@ -212,6 +223,8 @@ class ConfigParser:
         new_cords: list[int] = []
         for c in coord:
             if c[0] == '-' and c[1] == '0':
+                raise ValueError(f'Wrong hub coordinates: {c}.')
+            elif c[0] == '0' and len(c) > 1:
                 raise ValueError(f'Wrong hub coordinates: {c}.')
             try:
                 coordinate = int(c)
@@ -363,7 +376,8 @@ class ConfigParser:
 
         for conn in connections:
             conn_names = (conn.hub_a, conn.hub_b)
-            if conn_names in saved_conn:
+            conn_d_names = (conn.hub_b, conn.hub_a)
+            if conn_names in saved_conn or conn_d_names in saved_conn:
                 raise ValueError(
                     f"Duplicate hub connection '{conn_names}' in "
                     "configuration file."

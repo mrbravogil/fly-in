@@ -1,5 +1,6 @@
 run:
 	uv run python -m src \
+		--capacity-info True \
 		--map maps/easy/01_linear_path.txt
 
 install:

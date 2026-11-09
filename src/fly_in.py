@@ -58,14 +58,6 @@ class Fly_in():
         self.reservations = {}
         self._arrived: set = set()
 
-    # def _assign_path(self, drone: Drone, current_hub: Hub,
-    #                  turn: int, reservations: dict[tuple, int]) -> None:
-    #     """Assign the drone's current route using the graph state."""
-    #     if drone.current_hub:
-    #         drone.path = self.path_finder.reconstruct_path(
-    #                 drone.current_hub, self.graph, turn, reservations
-    #             )
-
     def _all_drones_finished(self) -> bool:
         """Return True when every drone has reached the end hub."""
         for drones in self.graph.drones:
@@ -76,7 +68,9 @@ class Fly_in():
 
     def _position_colour(self, hub: Hub | None) -> str:
         """Return the ANSI colour code for a drone located at or toward hub."""
-        return COLOURS.get(hub.colour, COLOURS['white'])
+        if hub:
+            return COLOURS.get(hub.colour, COLOURS['white'])
+        return COLOURS['white']
 
     def _rainbow_text(self, text: str) -> str:
         """Return the text with a rainbow-style ANSI colour cycle."""
@@ -116,22 +110,26 @@ class Fly_in():
     def _drone_current_position(self,
                                 drone: Drone) -> tuple[str | None, str | None]:
         """Return the position of the given drone."""
-        hub: Hub = (drone.current_hub
-                    if drone.current_hub is not None else None)
-        connection = (drone.current_connection.id
-                      if drone.current_connection is not None
-                      else None)
+        hub: Hub | None = (drone.current_hub
+                           if drone.current_hub is not None else None)
+        connection: str | None = (drone.current_connection.id
+                                  if drone.current_connection is not None
+                                  else None)
+        if hub:
+            return hub.name, connection
 
-        return hub, connection
+        return None, connection
 
     def _first_turn_log(self, drones: list[Drone]) -> str:
         """Build the coloured output from each drone's start location."""
         start_log: list[str] = []
 
         for drone in drones:
-            current_hub: Hub = drone.current_hub
-            code = self._position_colour(current_hub)
-            start_log.append(f'{code}[{drone.id}: {current_hub.name}]\x1b[0m')
+            current_hub: Hub | None = drone.current_hub
+            if current_hub:
+                code = self._position_colour(current_hub)
+                start_log.append(f'{code}[{drone.id}: '
+                                 f'{current_hub.name}]\x1b[0m')
 
         return ' '.join(start_log)
 
@@ -159,7 +157,7 @@ class Fly_in():
                 hub = drone.current_hub
             else:
                 continue
-            if position and hub.colour == 'rainbow':
+            if position and hub and hub.colour == 'rainbow':
                 label = f'[{drone.id}: {position}]'
                 positions.append(self._rainbow_text(label))
             else:
@@ -185,7 +183,7 @@ class Fly_in():
                 schedule: list[tuple] = self.planner.plan(self.graph.drones,
                                                           turns,
                                                           self.reservations)
-                previous_positions: dict[int, tuple] = {
+                previous_positions: dict[str, tuple] = {
                     drone.id: self._drone_current_position(drone)
                     for drone in self.graph.drones
                 }
@@ -219,7 +217,7 @@ class Fly_in():
 
             if (next_hub.zone == 'restricted'
                     and drone.current_connection is None):
-                connection: Connection = self.graph.find_connection(
+                connection: Connection | None = self.graph.find_connection(
                     from_hub.name, next_hub.name
                 )
                 drone.path = [from_hub, next_hub]
